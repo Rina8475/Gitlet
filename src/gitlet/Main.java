@@ -2,6 +2,10 @@
  * This class implements the following command line arguments:
  * - init: Initializes the gitlet repository.
  *       Usage: java Main init
+ * - hash-object: Hashes a file and stores it in the gitlet repository.
+ *       Usage: java Main hash-object <file>
+ * - cat-file: Displays the contents of a git object.
+ *       Usage: java Main cat-file <object>
  * - add: Adds a file to the gitlet repository.
  * - commit: Commits changes to the gitlet repository.
 */
@@ -15,10 +19,19 @@ public class Main {
         switch (args[0]) {
             case "init":
                 validateArgs(args, 1);
-                // Initialize the gitlet repository.
+                Repository.init();
+                break;
+            case "hash-object":
+                validateArgs(args, 2);
+                Repository.hashObject(args[1]);
+                break;
+            case "cat-file":
+                validateArgs(args, 2);
+                Repository.catFile(args[1]);
                 break;
             default:
-                break;
+                System.out.println("No command with that name exists.");
+                System.exit(1);
         }
     }
 
