@@ -98,4 +98,13 @@ public class Utils {
             System.exit(1);
         }
     }
+
+    public static int indexOf(byte[] array, byte b) {
+        for (int i = 0; i < array.length; i += 1) {
+            if (array[i] == b) {
+                return i;
+            }
+        }
+        return -1;
+    }
 }

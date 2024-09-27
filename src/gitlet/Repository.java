@@ -2,10 +2,20 @@
 
 package gitlet;
 
+import static gitlet.Utils.assertCondition;
 import static gitlet.Utils.writeContents;
+import java.util.HashSet;
+import java.util.Set;
 
 public class Repository {
-    
+
+    private static final Set<String> validTypes = new HashSet<String>();
+    static {
+        validTypes.add("commit");
+        validTypes.add("tree");
+        validTypes.add("blob");
+    }
+
     // init
     public static void init() {
         Data.assertNotInitialized();
@@ -13,14 +23,15 @@ public class Repository {
     }
 
     // hash-object
-    public static void hashObject(String filename) {
+    public static void hashObject(String filename, String type) {
         Data.assertInitialized();
-        System.out.println(Data.hashObject(filename));
+        System.out.println(Data.hashObject(filename, type));
     }
 
     // cat-file
-    public static void catFile(String object) {
+    public static void catFile(String object, String type) {
         Data.assertInitialized();
-        writeContents(System.out, Data.readObject(object));
+        assertCondition(validTypes.contains(type), "Invalid type: " + type);
+        writeContents(System.out, Data.readObject(object, type));
     }
 }

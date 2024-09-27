@@ -5,7 +5,7 @@
  * - hash-object: Hashes a file and stores it in the gitlet repository.
  *       Usage: java Main hash-object <file>
  * - cat-file: Displays the contents of a git object.
- *       Usage: java Main cat-file <object>
+ *       Usage: java Main cat-file <type> <object>
  * - add: Adds a file to the gitlet repository.
  * - commit: Commits changes to the gitlet repository.
 */
@@ -23,11 +23,11 @@ public class Main {
                 break;
             case "hash-object":
                 validateArgs(args, 2);
-                Repository.hashObject(args[1]);
+                Repository.hashObject(args[1], "blob");
                 break;
             case "cat-file":
-                validateArgs(args, 2);
-                Repository.catFile(args[1]);
+                validateArgs(args, 3);
+                Repository.catFile(args[2], args[1]);
                 break;
             default:
                 System.out.println("No command with that name exists.");
