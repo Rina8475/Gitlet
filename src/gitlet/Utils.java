@@ -85,11 +85,11 @@ public class Utils {
     }
 
     public static File join(String parent, String... others) {
-        return Paths.get(parent, others).toFile();
+        return Path.of(parent, others).normalize().toFile();
     }
 
     public static File join(File parent, String... others) {
-        return Paths.get(parent.getPath(), others).toFile();
+        return Path.of(parent.getPath(), others).normalize().toFile();
     }
 
     public static void assertCondition(boolean condition, String message) {

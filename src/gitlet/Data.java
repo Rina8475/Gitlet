@@ -11,7 +11,10 @@ public class Data {
     /* The working directory, the.gitlet directory, and the files in the.gitlet
      directory. */
     public static final File CWD = new File(System.getProperty("user.dir"));
-    public static final File GITLET_DIR = join(CWD, ".gitlet");
+    /* Points to the .gitlet directory, if does not find a such directory, then
+     * it points to the .gitlet directory in the current working directory, 
+     * which does not exist actually. */
+    public static final File GITLET_DIR = findGitlet(CWD);
     public static final File HEAD_FILE = join(GITLET_DIR, "HEAD");
     public static final File INDEX_FILE = join(GITLET_DIR, "index");
     public static final File REFS_DIR = join(GITLET_DIR, "refs");
@@ -28,6 +31,25 @@ public class Data {
         createFile(INDEX_FILE);
 
         // TODO create initial commit and branch (master)
+    }
+
+    private static File findGitlet(File cwd) {
+        File repo = findRepository(cwd);
+        return repo == null ? join(cwd, ".gitlet") : repo;
+    }
+
+    /** Finds the .gitlet directory from the PATH back to the root directory.
+     * @return the .gitlet directory, or null if it doesn't exist. */
+    private static File findRepository(File path) {
+        File gitletDir = join(path, ".gitlet");
+        if (gitletDir.exists() && gitletDir.isDirectory()) {
+            return gitletDir;
+        }
+        File parent = join(path, "..");
+        if (path.equals(parent)) {
+            return null;
+        }
+        return findRepository(parent);
     }
 
     /** Creates a new object with the given type and content. */

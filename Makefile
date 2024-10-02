@@ -11,7 +11,7 @@ $(TARGET): $(OBJS) $(ODIR)/manifest.txt
 	cd $(ODIR) && jar cfm ../$(TARGET) manifest.txt gitlet
 
 $(OBJS): $(_ODIR)/%.class : $(_SDIR)/%.java
-	cd src && $(MAKE)
+	$(MAKE) -C $(SDIR)
 
 $(ODIR)/manifest.txt: 
 	echo "Manifest-Version: 1.0\nMain-Class: gitlet.Main" > $@
