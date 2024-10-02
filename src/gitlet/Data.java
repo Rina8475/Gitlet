@@ -52,7 +52,19 @@ public class Data {
         return findRepository(parent);
     }
 
-    /** Creates a new object with the given type and content. */
+    /** Create a new gitlet object with the given content and type.
+     * @return the SHA-1 of the new object. */
+    public static String hashObject(byte[] content, String type) {
+        byte[] withType = addTypeInfo(content, type);
+        String id = sha1(withType);
+        File objFile = join(OBJS_DIR, id);
+        if (!objFile.exists()) {    // create object file if it doesn't exist
+            createFile(objFile);
+            writeContents(objFile, withType);
+        }
+        return id;
+    }
+
     public static String hashObject(String filename, String type) {
         File file = new File(filename);
         assertCondition(file.exists(), "File does not exist: " + filename);
@@ -77,6 +89,8 @@ public class Data {
         return result;
     }
 
+    /** Read the content of a gitlet object with the given id and type.
+     * @return the content of the object. */
     public static byte[] readObject(String id, String type) {
         File objFile = join(OBJS_DIR, id);
         assertCondition(objFile.exists(), "Object does not exist: " + id);

@@ -23,15 +23,15 @@ public class Repository {
     }
 
     // hash-object
-    public static void hashObject(String filename, String type) {
+    public static void hashObject(String filename) {
         Data.assertInitialized();
-        System.out.println(Data.hashObject(filename, type));
+        System.out.println(Base.hashObject(filename));
     }
 
     // cat-file
-    public static void catFile(String object, String type) {
+    public static void catFile(String oid, String type) {
         Data.assertInitialized();
         assertCondition(validTypes.contains(type), "Invalid type: " + type);
-        writeContents(System.out, Data.readObject(object, type));
+        writeContents(System.out, Data.readObject(oid, type));
     }
 }
