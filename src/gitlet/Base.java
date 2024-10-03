@@ -1,15 +1,112 @@
 package gitlet;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.io.File;
 
 import static gitlet.Utils.*;
 
 public class Base {
+    public static final String BASE_PATH = Data.getBasePath();
+    public static final int BASE_LENGTH = BASE_PATH.length();
+
     /** Creates a new blob object with the given file. */
     public static String hashObject(String filename) {
         File file = new File(filename);
         assertCondition(file.exists(), "File does not exist: " + filename);
         assertCondition(file.isFile(), "Not a file: " + filename);
+        return hashObject(file);
+    }
+
+    private static String hashObject(File file) {
         return Data.hashObject(readContents(file), "blob");
+    }
+
+    /** adds the file to the staging area. */
+    public static void add(String filename) {
+        File file = new File(filename);
+        assertCondition(file.exists(), "File does not exist: " + filename);
+        String fullPath = file.getAbsolutePath();
+        assertCondition(fullPath.startsWith(BASE_PATH), "Not in repository: " 
+            + filename);
+        // remove the entry from the index if it exists
+        unstageFile(getRelativePath(fullPath));
+
+        List<File> newFiles = getFiles(file);
+        Map<String, String> index = Data.readIndex();
+        for (File newfile : newFiles) {
+            String id = hashObject(newfile);
+            String relatPath = getRelativePath(newfile);
+            index.put(relatPath, id);
+        }
+        Data.writeIndex(index);
+    }
+
+    /** gets all the files in the path. 
+     * @return a list of all the files in the path. If the path is a file, 
+     * returns a list with that file. If the path is a directory, returns 
+     * a list with all the files in the directory and its subdirectories. */
+    private static List<File> getFiles(File file) {
+        List<File> files = new ArrayList<File>();
+        if (file.isFile()) {
+            files.add(file);
+        } else if (file.isDirectory()) {
+            getFiles(file, files);
+        }
+        return files;
+    }
+
+    private static void getFiles(File dir, List<File> files) {
+        File[] subfiles = dir.listFiles();
+        for (File subfile : subfiles) {
+            if (subfile.isFile()) {
+                files.add(subfile);
+            } else if (subfile.isDirectory()) {
+                getFiles(subfile, files);
+            }
+        }
+    }
+
+    /** gets the relative path of the file from the repository root. */
+    private static String getRelativePath(File file) {
+        return file.getAbsolutePath().substring(BASE_LENGTH);
+    }
+
+    private static String getRelativePath(String fullPath) {
+        return fullPath.substring(BASE_LENGTH);
+    }
+
+    /** removes the file from the staging area. */
+    public static void rm(String filename) {
+        File file = new File(filename);
+        String fullPath = file.getAbsolutePath();
+        assertCondition(fullPath.startsWith(BASE_PATH), "Not in repository: "
+            + filename);
+        String relatPath = getRelativePath(fullPath);
+        Set<String> unstagedFiles = unstageFile(relatPath);
+        assertCondition(!unstagedFiles.isEmpty(), "No reason to remove the "
+            + "file.");
+        
+        // Remove the files from the working directory.
+        for (String unstagedFile : unstagedFiles) {
+            File unstaged = new File(BASE_PATH + unstagedFile);
+            if (unstaged.exists()) {
+                unstaged.delete();
+            }
+        }
+    }
+
+    /** unstages the matched files from the index.
+     * @return the set of files that were unstaged. */
+    private static Set<String> unstageFile(String path) {
+        Map<String, String> index = Data.readIndex();
+        Set<String> oldKeys = new HashSet<>(index.keySet());
+        index.keySet().removeIf(p -> p.startsWith(path));
+        Data.writeIndex(index);
+        oldKeys.removeAll(index.keySet());
+        return oldKeys;
     }
 }

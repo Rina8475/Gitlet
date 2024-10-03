@@ -8,6 +8,8 @@
  *       Usage: java Main cat-file <type> <object>
  * - add: Stages a file to the gitlet repository.
  *       Usage: java Main add <file>
+ * - rm: Unstages a file from the gitlet repository.
+ *       Usage: java Main rm <file>
  * - commit: Commits changes to the gitlet repository.
 */
 
@@ -29,6 +31,14 @@ public class Main {
             case "cat-file":
                 validateArgs(args, 3);
                 Repository.catFile(args[2], args[1]);
+                break;
+            case "add":
+                validateArgs(args, 2);
+                Repository.add(args[1]);
+                break;
+            case "rm":
+                validateArgs(args, 2);
+                Repository.rm(args[1]);
                 break;
             default:
                 System.out.println("No command with that name exists.");

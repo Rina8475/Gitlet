@@ -9,4 +9,4 @@ OBJS = $(patsubst $(SDIR)/%.java, $(_ODIR)/%.class, $(wildcard $(SDIR)/*.java))
 all: $(OBJS)
 
 $(OBJS): $(_ODIR)/%.class: $(SDIR)/%.java
-	javac $< -d $(ODIR)
+	javac $(JFLAGS) $< -d $(ODIR)

@@ -1,5 +1,7 @@
 package gitlet;
 
+import java.util.Map;
+import java.util.HashMap;
 import java.io.File;
 import java.util.Arrays;
 import java.nio.charset.StandardCharsets;
@@ -91,6 +93,35 @@ public class Data {
         assertCondition(type.equals(actualType), "Object type mismatch," 
             + " expected " + type + " but got " + actualType);
         return Arrays.copyOfRange(content, nullIndex + 1, content.length);
+    }
+
+    /** Write the index entries to the index file. */
+    public static void writeIndex(Map<String, String> index) {
+        StringBuilder content = new StringBuilder();
+        for (String path : index.keySet()) {
+            String sha1 = index.get(path);
+            content.append(String.format("%s %s\n", path, sha1));
+        }
+        writeContents(INDEX_FILE, content.toString());
+    }
+
+    /** Read the index entries from the index file. */
+    public static Map<String, String> readIndex() {
+        Map<String, String> index = new HashMap<>();
+        String content = readContentsAsString(INDEX_FILE);
+        if (content.isEmpty()) {
+            return index;
+        }
+        for (String line : content.split("\n")) {
+            String[] parts = line.split(" ");   // path sha1
+            index.put(parts[0], parts[1]);
+        }
+        return index;
+    }
+
+    public static String getBasePath() {
+        String path = join(GITLET_DIR, "..").getAbsolutePath();
+        return path.endsWith("/") ? path : path + "/";
     }
 
     /** Asserts that the current directory is in an initialized Gitlet directory. */

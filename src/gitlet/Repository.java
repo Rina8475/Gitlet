@@ -34,4 +34,19 @@ public class Repository {
         assertCondition(validTypes.contains(type), "Invalid type: " + type);
         writeContents(System.out, Data.readObject(oid, type));
     }
+
+    /* add - Stages a file to the gitlet repository. Staging an already-staged 
+     * file overwrites the previous entry in the staging area with the new 
+     * contents. */
+    public static void add(String filename) {
+        Data.assertInitialized();
+        Base.add(filename);
+    }
+
+    /* rm - Unstages a file from the gitlet repository and remove the file from
+     * the working directory if the user has not already done so. */  
+    public static void rm(String filename) {
+        Data.assertInitialized();
+        Base.rm(filename);
+    }
 }

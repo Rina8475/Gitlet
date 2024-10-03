@@ -9,7 +9,7 @@ import java.security.NoSuchAlgorithmException;
 import java.nio.charset.StandardCharsets;
 
 public class Utils {
-
+    
     public static String sha1(byte[] bytes) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-1");
@@ -24,13 +24,10 @@ public class Utils {
         }
     }
 
+    /* Returns the SHA-1 hash of the given string. */
     public static String sha1(String str) {
         return sha1(str.getBytes(StandardCharsets.UTF_8));
     }
-
-    /* file operations 
-     * - getFile: name -> file, asserts the file exists and is a file
-    */
 
     public static void createFile(File file) {
         try {
@@ -43,14 +40,16 @@ public class Utils {
     }
 
     public static void createDirectory(File dir) {
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
+        assert !dir.exists() : "Directory already exists: " + dir.getPath();
+        dir.mkdirs();
     }
 
+    /** Reads the contents of the given file as a byte array.
+     * Assumes the file exists and is a file.
+     * @throws IllegalArgumentException in case of I/O errors. */
     public static byte[] readContents(File file) {
-        assertCondition(file.exists(), "File does not exist: " + file.getPath());
-        assertCondition(file.isFile(), "Not a file: " + file.getPath());
+        assert file.exists() : "File does not exist: " + file.getPath();
+        assert file.isFile() : "Not a file: " + file.getPath();
         try {
             return Files.readAllBytes(file.toPath());
         } catch (IOException e) {
@@ -62,13 +61,16 @@ public class Utils {
         return new String(readContents(file), StandardCharsets.UTF_8);
     }
 
+    /** Writes the given string to the given file, encoded in UTF-8.
+     * Assumes the file exists and is a file.
+     * @throws IllegalArgumentException in case of I/O errors. */
     public static void writeContents(File file, String contents) {
         writeContents(file, contents.getBytes(StandardCharsets.UTF_8));
     }
 
     public static void writeContents(File file, byte[] contents) {
-        assertCondition(file.exists(), "File does not exist: " + file.getPath());
-        assertCondition(file.isFile(), "Not a file: " + file.getPath());
+        assert file.exists() : "File does not exist: " + file.getPath();
+        assert file.isFile() : "Not a file: " + file.getPath();
         try {
             Files.write(file.toPath(), contents);
         } catch (IOException e) {
