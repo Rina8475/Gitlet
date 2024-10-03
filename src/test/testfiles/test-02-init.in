@@ -1,0 +1,18 @@
+< echo "This is a file.\nHello, world!" > foo.txt
+>>>
+< java -jar gitlet.jar init
+>>>
+< java -jar gitlet.jar add foo.txt
+>>>
+< cat .gitlet/index
+foo.txt ([\da-f]{40})
+>>>*
+D id = ${1}
+< java -jar gitlet.jar cat-file blob ${id}
+This is a file.
+Hello, world!
+>>>
+< java -jar gitlet.jar rm foo.txt
+>>>
+< cat .gitlet/index
+>>>

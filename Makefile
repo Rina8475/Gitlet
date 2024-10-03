@@ -16,10 +16,13 @@ $(OBJS): $(_ODIR)/%.class : $(_SDIR)/%.java
 $(ODIR)/manifest.txt: 
 	echo "Manifest-Version: 1.0\nMain-Class: gitlet.Main" > $@
 
-.PHONY: clean rm-repo
+.PHONY: clean rm-repo test
 
 clean:
 	rm -rf $(_ODIR)/*.class gitlet.jar
 
 rm-repo:
 	rm -rf .gitlet/
+
+test:
+	cd $(SDIR)/test && python3 tester.py -c testfiles/*.in
