@@ -11,10 +11,12 @@ public class Data {
     /* The working directory, the.gitlet directory, and the files in the.gitlet
      directory. */
     public static final File CWD = new File(System.getProperty("user.dir"));
+    /* Points to the .gitlet directory in the current working directory, 
+     * which may do not exist. */
+    public static final File VIEW_DIR = join(CWD, ".gitlet");
     /* Points to the .gitlet directory, if does not find a such directory, then
-     * it points to the .gitlet directory in the current working directory, 
-     * which does not exist actually. */
-    public static final File GITLET_DIR = findGitlet(CWD);
+     * it points to the VIEW_DIR. */
+    public static final File GITLET_DIR = findGitlet();
     public static final File HEAD_FILE = join(GITLET_DIR, "HEAD");
     public static final File INDEX_FILE = join(GITLET_DIR, "index");
     public static final File REFS_DIR = join(GITLET_DIR, "refs");
@@ -24,18 +26,18 @@ public class Data {
 
     /** Initializes the .gitlet directory and creates the necessary files. */
     public static void init() {
-        createDirectory(GITLET_DIR);
-        createDirectory(OBJS_DIR);
-        createDirectory(REFS_DIR);
-        createFile(HEAD_FILE);
-        createFile(INDEX_FILE);
+        createDirectory(VIEW_DIR);
+        createDirectory(join(VIEW_DIR, "refs"));
+        createDirectory(join(VIEW_DIR, "objects"));
+        createFile(join(VIEW_DIR, "HEAD"));
+        createFile(join(VIEW_DIR, "index"));
 
         // TODO create initial commit and branch (master)
     }
 
-    private static File findGitlet(File cwd) {
-        File repo = findRepository(cwd);
-        return repo == null ? join(cwd, ".gitlet") : repo;
+    private static File findGitlet() {
+        File repo = findRepository(CWD);
+        return repo == null ? VIEW_DIR : repo;
     }
 
     /** Finds the .gitlet directory from the PATH back to the root directory.
@@ -61,20 +63,6 @@ public class Data {
         if (!objFile.exists()) {    // create object file if it doesn't exist
             createFile(objFile);
             writeContents(objFile, withType);
-        }
-        return id;
-    }
-
-    public static String hashObject(String filename, String type) {
-        File file = new File(filename);
-        assertCondition(file.exists(), "File does not exist: " + filename);
-
-        byte[] content = addTypeInfo(readContents(file), type);
-        String id = sha1(content);
-        File objFile = join(OBJS_DIR, id);
-        if (!objFile.exists()) {    // create object file if it doesn't exist
-            createFile(objFile);
-            writeContents(objFile, content);
         }
         return id;
     }
@@ -112,7 +100,7 @@ public class Data {
     }
 
     public static void assertNotInitialized() {
-        assertCondition(!GITLET_DIR.exists(), "A Gitlet version-control system"
+        assertCondition(!VIEW_DIR.exists(), "A Gitlet version-control system"
                 + " already exists in the current directory.");
     }
 }
