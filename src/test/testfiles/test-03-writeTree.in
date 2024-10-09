@@ -1,0 +1,44 @@
+< mkdir foo
+>>>
+< echo "hello" > foo/bar.txt
+>>>
+< echo "world" > foo/baz.txt
+>>>
+< echo "demo" > demo.txt
+>>>
+< java -jar gitlet.jar init
+>>>
+< java -jar gitlet.jar add demo.txt
+>>>
+< cat .gitlet/index
+demo.txt ([\da-f]{40})
+>>>*
+D demoid = ${1}
+< java -jar gitlet.jar add foo/bar.txt
+>>>
+< cat .gitlet/index | sort
+demo.txt ${demoid}
+foo/bar.txt ([\da-f]{40})
+>>>*
+D foobarid = ${1}
+< java -jar gitlet.jar add foo/baz.txt
+>>>
+< cat .gitlet/index | sort
+demo.txt ${demoid}
+foo/bar.txt ${foobarid}
+foo/baz.txt ([\da-f]{40})
+>>>*
+D foobazid = ${1}
+< java -jar gitlet.jar write-tree
+([\da-f]{40})
+>>>*
+D treeid = ${1}
+< java -jar gitlet.jar cat-file tree ${treeid}
+blob ${demoid} demo.txt
+tree ([\da-f]{40}) foo
+>>>*
+D subtreeid = ${1}
+< java -jar gitlet.jar cat-file tree ${subtreeid} | sort -t " " -k 1,1 -k 3,3
+blob ${foobarid} bar.txt
+blob ${foobazid} baz.txt
+>>>*
