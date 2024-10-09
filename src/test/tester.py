@@ -47,6 +47,8 @@ def read_tokens(reader):
             yield "ED", line[2:].strip()
         if line.startswith("D"):
             yield "D", line[1:].strip()
+        if line.startswith("#"):
+            continue
 
 def run_command(command):
     print(f"Execute: {command}")

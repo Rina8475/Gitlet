@@ -1,0 +1,67 @@
+< mkdir foo
+>>>
+< echo "hello" > foo/bar.txt
+>>>
+< echo "world" > foo/baz.txt
+>>>
+< echo "demo" > demo.txt
+>>>
+< java -jar gitlet.jar init
+>>>
+< java -jar gitlet.jar log
+commit ([\da-f]{40})
+tree ([\da-f]{40})
+
+initial commit
+>>>*
+D cid1 = ${1}
+EF .gitlet/objects/${cid1}
+< java -jar gitlet.jar add demo.txt
+>>>
+< java -jar gitlet.jar commit "add demo.txt"
+([\da-f]{40})
+>>>*
+D cid2 = ${1}
+EF .gitlet/objects/${cid2}
+< java -jar gitlet.jar cat-file commit ${cid2}
+tree ([\da-f]{40})
+parent ${cid1}
+
+add demo.txt
+>>>*
+< java -jar gitlet.jar add foo/bar.txt
+>>>
+< java -jar gitlet.jar commit "add bar.txt"
+([\da-f]{40})
+>>>*
+D cid3 = ${1}
+< java -jar gitlet.jar add foo/baz.txt
+>>>
+< java -jar gitlet.jar commit "add baz.txt"
+([\da-f]{40})
+>>>*
+D cid4 = ${1}
+< java -jar gitlet.jar log
+commit ${cid4}
+tree ([\da-f]{40})
+parent ${cid3}
+
+add baz.txt
+
+commit ${cid3}
+tree ([\da-f]{40})
+parent ${cid2}
+
+add bar.txt
+
+commit ${cid2}
+tree ([\da-f]{40})
+parent ${cid1}
+
+add demo.txt
+
+commit ${cid1}
+tree ([\da-f]{40})
+
+initial commit
+>>>*
