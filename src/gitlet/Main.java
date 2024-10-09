@@ -13,6 +13,9 @@
  * - write-tree: Create a tree object from the current index
  *       Usage: java Main write-tree
  * - commit: Commits changes to the gitlet repository.
+ *       Usage: java Main commit <message>
+ * - log: Displays the commit history of the gitlet repository.
+ *       Usage: java Main log
 */
 
 package gitlet;
@@ -45,6 +48,14 @@ public class Main {
             case "write-tree":
                 validateArgs(args, 1);
                 Repository.writeTree();
+                break;
+            case "commit":
+                validateArgs(args, 2);
+                Repository.commit(args[1]);
+                break;
+            case "log":
+                validateArgs(args, 1);
+                Repository.log();
                 break;
             default:
                 System.out.println("No command with that name exists.");

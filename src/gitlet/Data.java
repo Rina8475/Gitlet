@@ -26,6 +26,28 @@ public class Data {
 
     private static final byte NULL_BYTE = 0;
 
+    static class Commit {
+        private final String tree;
+        private final String parent;
+        private final String message;
+
+        public Commit(String tree, String parent, String message) {
+            this.tree = tree;
+            this.parent = parent;
+            this.message = message;
+        }
+
+        public String toString() {
+            String parentLine = parent == null ? "" : String.format(
+                "parent %s\n", parent);
+            return String.format("tree %s\n%s\n%s\n", tree, parentLine, message);
+        }
+
+        public String getTree() { return tree; }
+        public String getParent() { return parent; }
+        public String getMessage() { return message; }
+    }
+
     /** Initializes the .gitlet directory and creates the necessary files. */
     public static void init() {
         createDirectory(VIEW_DIR);
@@ -33,13 +55,37 @@ public class Data {
         createDirectory(join(VIEW_DIR, "objects"));
         createFile(join(VIEW_DIR, "HEAD"));
         createFile(join(VIEW_DIR, "index"));
-
-        // TODO create initial commit and branch (master)
     }
 
     private static File findGitlet() {
         File repo = findRepository(CWD);
         return repo == null ? VIEW_DIR : repo;
+    }
+
+    public static void setHead(String ref) {
+        writeContents(HEAD_FILE, ref);
+    }
+
+    /** Returns the id of the current HEAD commit. */
+    public static String getHead() {
+        return readContentsAsString(HEAD_FILE);
+    }
+
+    public static String writeCommit(Commit commit) {
+        String content = commit.toString();
+        return hashObject(content.getBytes(StandardCharsets.UTF_8), "commit");
+    }
+
+    public static Commit readCommit(String id) {
+        String content = new String(readObject(id, "commit"), StandardCharsets
+            .UTF_8);
+        String[] lines = content.split("\n+");
+        String tree = lines[0].split(" ")[1];
+        String[] tokens = lines[1].split(" ");
+        boolean hasParent = tokens[0].equals("parent");
+        String parent = hasParent ? tokens[1] : null;
+        String message = hasParent ? lines[2] : lines[1];
+        return new Commit(tree, parent, message);
     }
 
     /** Finds the .gitlet directory from the PATH back to the root directory.

@@ -2,10 +2,10 @@
 
 package gitlet;
 
-import static gitlet.Utils.assertCondition;
-import static gitlet.Utils.writeContents;
 import java.util.HashSet;
 import java.util.Set;
+
+import static gitlet.Utils.*;
 
 public class Repository {
 
@@ -19,7 +19,7 @@ public class Repository {
     // init
     public static void init() {
         Data.assertNotInitialized();
-        Data.init();
+        Base.init();
     }
 
     // hash-object
@@ -55,5 +55,17 @@ public class Repository {
     public static void writeTree() {
         Data.assertInitialized();
         System.out.println(Base.writeTree());
+    }
+
+    // commit
+    public static void commit(String message) {
+        Data.assertInitialized();
+        System.out.println(Base.commit(message));
+    }
+
+    // log
+    public static void log() {
+        Data.assertInitialized();
+        System.out.println(Base.log());
     }
 }

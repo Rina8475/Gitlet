@@ -7,14 +7,22 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.TreeMap;
 import java.io.File;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
+import gitlet.Data.Commit;
 import static gitlet.Utils.*;
 
 public class Base {
     public static final String BASE_PATH = Data.getBasePath();
     public static final int BASE_LENGTH = BASE_PATH.length();
+
+    /** Initializes the repository. */
+    public static void init() {
+        Data.init();
+        String oid = Data.writeCommit(new Commit(writeTree(), null, 
+            "initial commit"));
+        Data.setHead(oid);
+    }
 
     /** Creates a new blob object with the given file. */
     public static String hashObject(String filename) {
@@ -145,5 +153,30 @@ public class Base {
             tree.get(parent).add(entry);
         }
         return tid;
+    }
+
+    /** Commits the changes in the working directory to the repository, creates
+     * a new commit object, and updatess the HEAD pointer to point to the new
+     * commit.
+     * @return the hash of the new commit object. */
+    public static String commit(String message) {
+        String parent = Data.getHead();
+        Commit commit = new Commit(writeTree(), parent, message);
+        String oid = Data.writeCommit(commit);
+        Data.setHead(oid);
+        return oid;
+    }
+
+    /** @return the log of all the commits. */
+    public static String log() {
+        String oid = Data.getHead();
+        StringBuilder content = new StringBuilder();
+        while (oid != null) {
+            Commit commit = Data.readCommit(oid);
+            content.append(String.format("commit %s\n%s\n", oid, commit
+                .toString()));
+            oid = commit.getParent();
+        }
+        return content.toString();
     }
 }
