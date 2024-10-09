@@ -109,4 +109,21 @@ public class Utils {
         }
         return -1;
     }
+
+    /** Gets the parent directory of the given path. */
+    public static String dirname(String path) {
+        int lastSlash = path.lastIndexOf('/');
+        if (lastSlash == -1) {
+            return "";
+        }
+        return path.substring(0, lastSlash);
+    }
+
+    public static String basename(String path) {
+        int lastSlash = path.lastIndexOf('/');
+        if (lastSlash == -1) {
+            return path;
+        }
+        return path.substring(lastSlash + 1);
+    }
 }

@@ -49,4 +49,11 @@ public class Repository {
         Data.assertInitialized();
         Base.rm(filename);
     }
+
+    /* write-tree - Create a tree object from the current index, and print the
+     * id of the new tree object. */
+    public static void writeTree() {
+        Data.assertInitialized();
+        System.out.println(Base.writeTree());
+    }
 }

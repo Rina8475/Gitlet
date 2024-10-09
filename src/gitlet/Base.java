@@ -5,7 +5,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.TreeMap;
 import java.io.File;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import static gitlet.Utils.*;
 
@@ -108,5 +111,39 @@ public class Base {
         Data.writeIndex(index);
         oldKeys.removeAll(index.keySet());
         return oldKeys;
+    }
+
+    /** Create a tree object from the current index.
+     * @return the hash of the new tree object. */
+    public static String writeTree() {
+        Map<String, String> index = Data.readIndex();
+        // transfrom the index entries into tree entries
+        Map<String, List<String>> tree = new TreeMap<>((x, y) -> y.length() 
+            - x.length());
+        tree.put("", new ArrayList<>());
+        for (String file : index.keySet()) {
+            // create all the parent directories of the file in the tree
+            for (String key = dirname(file); !key.isEmpty(); key 
+                = dirname(key)) {
+                if (!tree.containsKey(key)) {
+                    tree.put(key, new ArrayList<>());
+                }
+            }
+            String entry = String.format("%s %s %s\n", "blob", index.get(file), 
+                basename(file));
+            tree.get(dirname(file)).add(entry);
+        }
+        // construct the tree object
+        String tid = null;
+        for (String dir : tree.keySet()) {
+            String content = String.join("", tree.get(dir));
+            tid = Data.hashObject(content.getBytes(StandardCharsets
+                .UTF_8), "tree");
+            String parent = dirname(dir);
+            String base = basename(dir);
+            String entry = String.format("%s %s %s\n", "tree", tid, base);
+            tree.get(parent).add(entry);
+        }
+        return tid;
     }
 }

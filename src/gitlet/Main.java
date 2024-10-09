@@ -10,6 +10,8 @@
  *       Usage: java Main add <file>
  * - rm: Unstages a file from the gitlet repository.
  *       Usage: java Main rm <file>
+ * - write-tree: Create a tree object from the current index
+ *       Usage: java Main write-tree
  * - commit: Commits changes to the gitlet repository.
 */
 
@@ -39,6 +41,10 @@ public class Main {
             case "rm":
                 validateArgs(args, 2);
                 Repository.rm(args[1]);
+                break;
+            case "write-tree":
+                validateArgs(args, 1);
+                Repository.writeTree();
                 break;
             default:
                 System.out.println("No command with that name exists.");
