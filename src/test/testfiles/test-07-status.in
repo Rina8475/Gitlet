@@ -1,0 +1,65 @@
+< mkdir foo
+>>>
+< echo "hello" > foo/bar.txt
+>>>
+< echo "world" > foo/baz.txt
+>>>
+< echo "demo" > demo.txt
+>>>
+< java -jar gitlet.jar init
+>>>
+< java -jar gitlet.jar add foo/bar.txt
+>>>
+< java -jar gitlet.jar add foo/baz.txt
+>>>
+< java -jar gitlet.jar status
+Changes to be committed:
+    new file: foo/ba[rz].txt
+    new file: foo/ba[rz].txt
+
+Changes not staged for commit:
+
+Untracked files:
+    demo.txt
+>>>*
+< java -jar gitlet.jar commit "add bar and baz files"
+([\da-f]{40})
+>>>*
+< java -jar gitlet.jar status
+Changes to be committed:
+
+Changes not staged for commit:
+
+Untracked files:
+    demo.txt
+>>>
+< echo "hello" >> foo/bar.txt
+>>>
+< echo "world" >> foo/baz.txt
+>>>
+< java -jar gitlet.jar add foo/bar.txt
+>>>
+< java -jar gitlet.jar status
+Changes to be committed:
+    modified: foo/bar.txt
+
+Changes not staged for commit:
+    modified: foo/baz.txt
+
+Untracked files:
+    demo.txt
+>>>
+< java -jar gitlet.jar rm foo/bar.txt
+>>>
+< rm foo/baz.txt
+>>>
+< java -jar gitlet.jar status
+Changes to be committed:
+    deleted: foo/bar.txt
+
+Changes not staged for commit:
+    deleted: foo/baz.txt
+
+Untracked files:
+    demo.txt
+>>>
