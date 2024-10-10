@@ -1,0 +1,78 @@
+< mkdir foo
+>>>
+< echo "hello" > foo/bar.txt
+>>>
+< echo "world" > foo/baz.txt
+>>>
+< echo "demo" > demo.txt
+>>>
+< java -jar gitlet.jar init
+>>>
+< java -jar gitlet.jar add demo.txt
+>>>
+< java -jar gitlet.jar add foo/bar.txt
+>>>
+< java -jar gitlet.jar add foo/baz.txt
+>>>
+< java -jar gitlet.jar commit "add some files"
+([\da-f]{40})
+>>>*
+D cid1 = ${1}
+< echo "print(\"hello world\")" > hello.py
+>>>
+< java -jar gitlet.jar add hello.py
+>>>
+< java -jar gitlet.jar rm foo/baz.txt
+>>>
+< java -jar gitlet.jar commit "remove baz.txt and add hello.py"
+([\da-f]{40})
+>>>*
+D cid2 = ${1}
+< echo "Sofa is so far." >> demo.txt
+>>> 
+< java -jar gitlet.jar add demo.txt
+>>>
+< java -jar gitlet.jar commit "add more text to demo.txt"
+([\da-f]{40})
+>>>*
+D cid3 = ${1}
+< java -jar gitlet.jar log
+commit ${cid3}
+tree ([\da-f]{40})
+parent ${cid2}
+
+add more text to demo.txt
+
+commit ${cid2}
+tree ([\da-f]{40})
+parent ${cid1}
+
+remove baz.txt and add hello.py
+
+commit ${cid1}
+tree ([\da-f]{40})
+parent ([\da-f]{40})
+
+add some files
+
+commit ([\da-f]{40})
+tree ([\da-f]{40})
+
+initial commit
+>>>*
+< java -jar gitlet.jar checkout ${cid1}
+Switched to commit ${cid1}.
+>>>
+#
+# checks the content of demo.txt, foo/bar.txt, and foo/baz.txt
+# 
+< cat demo.txt
+demo
+>>>
+< cat foo/bar.txt
+hello
+>>>
+< cat foo/baz.txt
+world
+>>>
+NEF hello.py

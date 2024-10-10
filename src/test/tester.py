@@ -47,6 +47,8 @@ def read_tokens(reader):
             yield "ED", line[2:].strip()
         if line.startswith("D"):
             yield "D", line[1:].strip()
+        if line.startswith("NEF"):
+            yield "NEF", line[3:].strip()
         if line.startswith("#"):
             continue
 
@@ -97,6 +99,11 @@ def execute_token(pre, token, remain):
             if not is_dir_exist(name):
                 print(f"Directory not found: {name}", file=sys.stderr)
                 print(f"Current directory: {os.getcwd()}", file=sys.stderr)
+                raise TestException()
+    elif pre == "NEF":
+        for name in token.split():
+            if is_file_exist(name):
+                print(f"File exists: {name}", file=sys.stderr)
                 raise TestException()
     return ""    # default return value
 
