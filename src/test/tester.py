@@ -9,6 +9,7 @@ import os
 import subprocess
 import argparse
 import re
+import difflib
 
 from shutil import copyfile
 from contextlib import contextmanager
@@ -68,7 +69,7 @@ def execute_token(pre, token, remain):
     elif pre == ">>>":
         assert type(remain) == str, "remain should be a string"
         if remain != token:
-            print(f"Unexpected output: \n>>> (expected)\n{token}<<< (actual)\n{remain}")
+            print(f"Unexpected output: \n{compare_strings_ndiff(remain, token)}")
             raise TestException()
     elif pre == ">>>*":
         match = re.match(token, remain)
@@ -128,6 +129,12 @@ def replace_token(token):
         return token
     return token[:start_idx] + SYMBOLS[var_name] + replace_token(token[start_idx + end_idx + 1:])
 
+def compare_strings_ndiff(str1, str2):
+    """Compare two strings and return the ndiff result"""
+    seq1 = str1.splitlines(keepends=True)
+    seq2 = str2.splitlines(keepends=True)
+    return "".join(difflib.ndiff(seq1, seq2))
+
 def is_valid_name(symbol):
     return re.match(r"^[a-zA-Z0-9_]+$", symbol)
 
@@ -152,6 +159,7 @@ def get_var_name(symbol):
 # File Operations   #
 #####################
 JAR_PATH = "../../gitlet.jar"
+OTHER_FILES = tuple(map(lambda x: os.path.join("src", x), os.listdir("src")))
 
 def is_file_exist(file_path):
     return os.path.exists(file_path) and os.path.isfile(file_path)
@@ -215,7 +223,7 @@ assert all(is_file_exist(f) for f in test_files), "Input file not found"
 
 for test_file in test_files:
     test_name = get_wkd(test_file)
-    set_wkd(test_name, test_file, JAR_PATH)
+    set_wkd(test_name, test_file, JAR_PATH, *OTHER_FILES)
     try:
         with change_wkd(test_name):
             do_test(test_name + ".in")
