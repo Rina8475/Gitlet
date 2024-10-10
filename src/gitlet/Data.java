@@ -1,5 +1,6 @@
 package gitlet;
 
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.io.File;
@@ -62,6 +63,20 @@ public class Data {
         return repo == null ? VIEW_DIR : repo;
     }
 
+    /** Finds the .gitlet directory from the PATH back to the root directory.
+     * @return the .gitlet directory, or null if it doesn't exist. */
+    private static File findRepository(File path) {
+        File gitletDir = join(path, ".gitlet");
+        if (gitletDir.exists() && gitletDir.isDirectory()) {
+            return gitletDir;
+        }
+        File parent = join(path, "..");
+        if (path.equals(parent)) {
+            return null;
+        }
+        return findRepository(parent);
+    }
+
     public static void setHead(String ref) {
         writeContents(HEAD_FILE, ref);
     }
@@ -86,20 +101,6 @@ public class Data {
         String parent = hasParent ? tokens[1] : null;
         String message = hasParent ? lines[2] : lines[1];
         return new Commit(tree, parent, message);
-    }
-
-    /** Finds the .gitlet directory from the PATH back to the root directory.
-     * @return the .gitlet directory, or null if it doesn't exist. */
-    private static File findRepository(File path) {
-        File gitletDir = join(path, ".gitlet");
-        if (gitletDir.exists() && gitletDir.isDirectory()) {
-            return gitletDir;
-        }
-        File parent = join(path, "..");
-        if (path.equals(parent)) {
-            return null;
-        }
-        return findRepository(parent);
     }
 
     /** Create a new gitlet object with the given content and type.
@@ -129,7 +130,7 @@ public class Data {
      * @return the content of the object. */
     public static byte[] readObject(String id, String type) {
         File objFile = join(OBJS_DIR, id);
-        assertCondition(objFile.exists(), "Object does not exist: " + id);
+        assert objFile.exists() : "Object " + id + " does not exist.";
 
         byte[] content = readContents(objFile);
         int nullIndex = indexOf(content, NULL_BYTE);
@@ -165,6 +166,7 @@ public class Data {
         return index;
     }
 
+    /** Returns the base path of the current working directory. */
     public static String getBasePath() {
         String path = join(GITLET_DIR, "..").getAbsolutePath();
         return path.endsWith("/") ? path : path + "/";
@@ -179,5 +181,10 @@ public class Data {
     public static void assertNotInitialized() {
         assertCondition(!VIEW_DIR.exists(), "A Gitlet version-control system"
                 + " already exists in the current directory.");
+    }
+
+    public static void assertObjectExists(String id) {
+        File objFile = join(OBJS_DIR, id);
+        assertFileExists(objFile);
     }
 }

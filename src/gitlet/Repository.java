@@ -32,6 +32,7 @@ public class Repository {
     public static void catFile(String oid, String type) {
         Data.assertInitialized();
         assertCondition(validTypes.contains(type), "Invalid type: " + type);
+        Data.assertObjectExists(oid);
         writeContents(System.out, Data.readObject(oid, type));
     }
 
@@ -67,5 +68,23 @@ public class Repository {
     public static void log() {
         Data.assertInitialized();
         System.out.println(Base.log());
+    }
+
+    /** ls-tree - List the contents of a tree object recursively. This command
+     * implements the git ls-tree -r command. */
+    public static void lsTree(String oid) {
+        Data.assertInitialized();
+        Data.assertObjectExists(oid);
+        System.out.println(Base.lsTree(oid));
+    }
+
+    /** checkout - Convert the working directory to the specified commit.
+     * Only when all the files that will be overwritten have been staged, the
+     * checkout operation will succeed, other files will be left unchanged. */
+    public static void checkout(String oid) {
+        Data.assertInitialized();
+        Data.assertObjectExists(oid);
+        Base.checkout(oid);
+        System.out.println("Switched to commit " + oid + ".");
     }
 }

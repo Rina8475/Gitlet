@@ -2,6 +2,10 @@
 
 package gitlet;
 
+import java.util.Collection;
+import java.util.ArrayList;
+import java.util.function.*;
+
 import java.io.*;
 import java.nio.file.*;
 import java.security.MessageDigest;
@@ -42,6 +46,10 @@ public class Utils {
     public static void createDirectory(File dir) {
         assert !dir.exists() : "Directory already exists: " + dir.getPath();
         dir.mkdirs();
+    }
+
+    public static void deleteFile(File file) {
+        file.delete();
     }
 
     /** Reads the contents of the given file as a byte array.
@@ -101,6 +109,16 @@ public class Utils {
         }
     }
 
+    public static void assertFileExists(String filename) {
+        File file = new File(filename);
+        assertFileExists(file);
+    }
+
+    public static void assertFileExists(File file) {
+        assertCondition(file.exists(), "File does not exist: " + file.getPath());
+        assertCondition(file.isFile(), "Not a file: " + file.getPath());
+    }
+
     public static int indexOf(byte[] array, byte b) {
         for (int i = 0; i < array.length; i += 1) {
             if (array[i] == b) {
@@ -125,5 +143,51 @@ public class Utils {
             return path;
         }
         return path.substring(lastSlash + 1);
+    }
+
+    public static String joinPaths(String parent, String... others) {
+        return Path.of(parent, others).normalize().toString();
+    }
+
+    public static <A, B> Collection<B> map(Collection<A> collection, Function<A, B> f) {
+        Collection<B> result = new ArrayList<>();
+        for (A a : collection) {
+            result.add(f.apply(a));
+        }
+        return result;
+    }
+
+    public static <A> void forEach(Collection<A> collection, Consumer<A> f) {
+        for (A a : collection) {
+            f.accept(a);
+        }
+    }
+
+    public static <A> Collection<A> filter(Collection<A> collection, Predicate<A> p) {
+        Collection<A> result = new ArrayList<>();
+        for (A a : collection) {
+            if (p.test(a)) {
+                result.add(a);
+            }
+        }
+        return result;
+    }
+
+    public static <A> boolean all(Collection<A> collection, Predicate<A> p) {
+        for (A a : collection) {
+            if (!p.test(a)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static <A> boolean any(Collection<A> collection, Predicate<A> p) {
+        for (A a : collection) {
+            if (p.test(a)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -16,6 +16,10 @@
  *       Usage: java Main commit <message>
  * - log: Displays the commit history of the gitlet repository.
  *       Usage: java Main log
+ * - ls-tree: Displays the contents of a tree object recursively.
+ *       Usage: java Main ls-tree <tree>
+ * - checkout: Checkout a branch or a commit.
+ *       Usage: java Main checkout <branch/commit>
 */
 
 package gitlet;
@@ -56,6 +60,14 @@ public class Main {
             case "log":
                 validateArgs(args, 1);
                 Repository.log();
+                break;
+            case "ls-tree":
+                validateArgs(args, 2);
+                Repository.lsTree(args[1]);
+                break;
+            case "checkout":
+                validateArgs(args, 2);
+                Repository.checkout(args[1]);
                 break;
             default:
                 System.out.println("No command with that name exists.");

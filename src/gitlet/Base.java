@@ -1,9 +1,11 @@
 package gitlet;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeMap;
 import java.io.File;
@@ -27,8 +29,7 @@ public class Base {
     /** Creates a new blob object with the given file. */
     public static String hashObject(String filename) {
         File file = new File(filename);
-        assertCondition(file.exists(), "File does not exist: " + filename);
-        assertCondition(file.isFile(), "Not a file: " + filename);
+        assertFileExists(file);
         return hashObject(file);
     }
 
@@ -39,7 +40,7 @@ public class Base {
     /** adds the file to the staging area. */
     public static void add(String filename) {
         File file = new File(filename);
-        assertCondition(file.exists(), "File does not exist: " + filename);
+        assertFileExists(file);
         String fullPath = file.getAbsolutePath();
         assertCondition(fullPath.startsWith(BASE_PATH), "Not in repository: " 
             + filename);
@@ -178,5 +179,100 @@ public class Base {
             oid = commit.getParent();
         }
         return content.toString();
+    }
+
+    /** @return the contents of the tree object. */
+    public static String lsTree(String oid) {
+        Map<String, String> tree = readTree(oid);
+        Collection<String> lines = map(tree.keySet(), (key) -> String
+            .format("%s %s", tree.get(key), key));
+        return String.join("\n", lines);
+    }
+
+    /** Reads the tree information given by OID.  
+     * @return the the contents of a tree object by the format of index. */
+    private static Map<String, String> readTree(String oid) {
+        Map<String, String> contents = new HashMap<>();
+        List<String[]> entries = new ArrayList<>();
+        readTree(oid, "", entries);
+        forEach(entries, e -> contents.put(e[0], e[1]));
+        return contents;
+    }
+
+    private static void readTree(String oid, String base, List<String[]> entries) {
+        String content = new String(Data.readObject(oid, "tree"), 
+            StandardCharsets.UTF_8);
+        for (String line : content.split("\n")) {
+            String[] fields = line.split(" ");     // type, oid, name
+            if ("blob".equals(fields[0])) {
+                entries.add(new String[] {joinPaths(base, fields[2]), 
+                    fields[1]});
+            } else if ("tree".equals(fields[0])) {
+                readTree(fields[1], joinPaths(base, fields[2]), entries);
+            }
+        }
+    }
+
+    /** Reads the commit OID and overwrites the working directory with the 
+     * commit. */
+    public static void checkout(String oid) {
+        // 0. current commit    1. target commit    2. current working dir
+        Commit c0 = Data.readCommit(Data.getHead());
+        Commit c1 = Data.readCommit(oid);
+        Map<String, String> fileSet0 = readTree(c0.getTree());
+        Map<String, String> fileSet1 = readTree(c1.getTree());
+        Map<String, String> fileSet2 = readWorkingDir();
+
+        // checks if all the files will be overwritten is tracked.
+        boolean allTracked = all(fileSet1.keySet(), (file) -> isCommitted(file, 
+            fileSet0, fileSet2));
+        assertCondition(allTracked, "Not all files are tracked.");
+        // deletes all the files that will be overwritten.
+        Collection<String> deletedFiles = filter(fileSet0.keySet(), (file) -> 
+            isCommitted(file, fileSet0, fileSet2));
+        forEach(deletedFiles, (file) -> deleteFile(join(BASE_PATH, file)));
+        // copies the files from the index to the working directory.
+        forEach(fileSet1.keySet(), (file) -> writeWorkingDir(file, fileSet1
+            .get(file)));
+        // updates the HEAD pointer to point to the new commit.
+        Data.setHead(oid);
+    }
+
+    /** Checks if the file FILENAME is committed in the current commit.
+     * @param commit the files and corresponding hashes in the current commit.
+     * @param workDir the files and corresponding hashes in the working 
+     * directory. */
+    private static boolean isCommitted(String filename, Map<String, String> 
+        commit, Map<String, String> workDir) {
+        return commit.containsKey(filename) == workDir.containsKey(filename); 
+    }
+
+    /** @return the files and corresponding hashes in the working directory. */
+    private static Map<String, String> readWorkingDir() {
+        Map<String, String> contents = new HashMap<>();
+        File base = new File(BASE_PATH);
+        forEach(getFiles(base), (file) -> contents.put(getRelativePath(file), 
+            hashObject(file)));
+        return contents;
+    }
+
+    /** Checks if all the files is tracked by the current commit. */
+    public static boolean isAllTracked(Collection<String> files) {
+        String oid = Data.getHead();
+        Commit commit = Data.readCommit(oid);
+        Map<String, String> entries = readTree(commit.getTree());
+        return all(files, (file) -> entries.containsKey(file));
+    }
+
+    /** Writes the object to the working directory as the given path. 
+     * @path the path to the file to be created. the path is relative to the 
+     * repository root. 
+     * @oid the hash of the object to be written. Assumes the object is a blob.
+     */
+    private static void writeWorkingDir(String path, String oid) {
+        byte[] content = Data.readObject(oid, "blob");
+        File file = join(BASE_PATH, path);
+        createFile(file);
+        writeContents(file, content);
     }
 }
