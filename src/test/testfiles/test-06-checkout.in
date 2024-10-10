@@ -60,6 +60,7 @@ tree ([\da-f]{40})
 
 initial commit
 >>>*
+D cid4 = ${5}
 < java -jar gitlet.jar checkout ${cid1}
 Switched to commit ${cid1}.
 >>>
@@ -76,3 +77,15 @@ hello
 world
 >>>
 NEF hello.py
+< java -jar gitlet.jar log
+commit ${cid1}
+tree ([\da-f]{40})
+parent ([\da-f]{40})
+
+add some files
+
+commit ${cid4}
+tree ([\da-f]{40})
+
+initial commit
+>>>*

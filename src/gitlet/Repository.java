@@ -25,7 +25,7 @@ public class Repository {
     // hash-object
     public static void hashObject(String filename) {
         Data.assertInitialized();
-        System.out.println(Base.hashObject(filename));
+        System.out.println(Base.hashBlob(filename));
     }
 
     // cat-file

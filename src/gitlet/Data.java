@@ -1,6 +1,5 @@
 package gitlet;
 
-import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.io.File;
@@ -114,6 +113,13 @@ public class Data {
             writeContents(objFile, withType);
         }
         return id;
+    }
+
+    /** Just calculate the SHA value of the specified content.
+     * @return the SHA-1 value of the content. */
+    public static String restrictedHashObject(byte[] content, String type) {
+        byte[] withType = addTypeInfo(content, type);
+        return sha1(withType);
     }
 
     static byte[] addTypeInfo(byte[] content, String type) {

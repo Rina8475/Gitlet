@@ -27,14 +27,18 @@ public class Base {
     }
 
     /** Creates a new blob object with the given file. */
-    public static String hashObject(String filename) {
+    public static String hashBlob(String filename) {
         File file = new File(filename);
         assertFileExists(file);
-        return hashObject(file);
+        return hashBlob(file);
     }
 
-    private static String hashObject(File file) {
+    private static String hashBlob(File file) {
         return Data.hashObject(readContents(file), "blob");
+    }
+
+    private static String restrictedHashBlob(File file) {
+        return Data.restrictedHashObject(readContents(file), "blob");
     }
 
     /** adds the file to the staging area. */
@@ -50,7 +54,7 @@ public class Base {
         List<File> newFiles = getFiles(file);
         Map<String, String> index = Data.readIndex();
         for (File newfile : newFiles) {
-            String id = hashObject(newfile);
+            String id = hashBlob(newfile);
             String relatPath = getRelativePath(newfile);
             index.put(relatPath, id);
         }
@@ -252,7 +256,7 @@ public class Base {
         Map<String, String> contents = new HashMap<>();
         File base = new File(BASE_PATH);
         forEach(getFiles(base), (file) -> contents.put(getRelativePath(file), 
-            hashObject(file)));
+            restrictedHashBlob(file)));
         return contents;
     }
 
@@ -265,9 +269,9 @@ public class Base {
     }
 
     /** Writes the object to the working directory as the given path. 
-     * @path the path to the file to be created. the path is relative to the 
+     * @param path the path to the file to be created. the path is relative to the 
      * repository root. 
-     * @oid the hash of the object to be written. Assumes the object is a blob.
+     * @param oid the hash of the object to be written. Assumes the object is a blob.
      */
     private static void writeWorkingDir(String path, String oid) {
         byte[] content = Data.readObject(oid, "blob");
