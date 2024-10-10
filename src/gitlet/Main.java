@@ -20,6 +20,8 @@
  *       Usage: java Main ls-tree <tree>
  * - checkout: Checkout a branch or a commit.
  *       Usage: java Main checkout <branch/commit>
+ * - status: Displays the status of the gitlet repository.
+ *       Usage: java Main status
 */
 
 package gitlet;
@@ -68,6 +70,10 @@ public class Main {
             case "checkout":
                 validateArgs(args, 2);
                 Repository.checkout(args[1]);
+                break;
+            case "status":
+                validateArgs(args, 1);
+                Repository.status();
                 break;
             default:
                 System.out.println("No command with that name exists.");

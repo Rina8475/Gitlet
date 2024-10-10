@@ -2,6 +2,8 @@
 
 package gitlet;
 
+import java.util.Set;
+import java.util.HashSet;
 import java.util.Collection;
 import java.util.ArrayList;
 import java.util.function.*;
@@ -189,5 +191,20 @@ public class Utils {
             }
         }
         return false;
+    }
+
+    /* Set Operations */
+    /** @return set1 & set2 */
+    public static <A> Set<A> intersection(Set<A> set1, Set<A> set2) {
+        Set<A> result = new HashSet<>(set1);
+        result.retainAll(set2);
+        return result;
+    }
+
+    /** @return set1 - set2 */
+    public static <A> Set<A> difference(Set<A> set1, Set<A> set2) {
+        Set<A> result = new HashSet<>(set1);
+        result.removeAll(set2);
+        return result;
     }
 }

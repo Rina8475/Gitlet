@@ -1,5 +1,6 @@
 package gitlet;
 
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.io.File;
@@ -23,6 +24,8 @@ public class Data {
     public static final File INDEX_FILE = join(GITLET_DIR, "index");
     public static final File REFS_DIR = join(GITLET_DIR, "refs");
     public static final File OBJS_DIR = join(GITLET_DIR, "objects");
+    public static final File IGNORES_FILE = join(Base.BASE_PATH, 
+        ".gitletignore");
 
     private static final byte NULL_BYTE = 0;
 
@@ -176,6 +179,17 @@ public class Data {
     public static String getBasePath() {
         String path = join(GITLET_DIR, "..").getAbsolutePath();
         return path.endsWith("/") ? path : path + "/";
+    }
+
+    public static List<String> getIgnorePatterns() {
+        if (!IGNORES_FILE.exists()) {
+            return Arrays.asList();
+        }
+        String content = readContentsAsString(IGNORES_FILE);
+        if (content.isEmpty()) {
+            return Arrays.asList();
+        }
+        return Arrays.asList(content.split("\n"));
     }
 
     /** Asserts that the current directory is in an initialized Gitlet directory. */

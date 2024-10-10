@@ -1,5 +1,6 @@
 package gitlet;
 
+import java.util.regex.*;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -37,14 +38,16 @@ public class Base {
         return Data.hashObject(readContents(file), "blob");
     }
 
-    private static String restrictedHashBlob(File file) {
+    private static String restrictedHashBlob(String filename) {
+        File file = join(BASE_PATH, filename);
         return Data.restrictedHashObject(readContents(file), "blob");
     }
 
     /** adds the file to the staging area. */
     public static void add(String filename) {
         File file = new File(filename);
-        assertFileExists(file);
+        assertCondition(file.exists(), "File does not exist: " + file
+            .getPath());
         String fullPath = file.getAbsolutePath();
         assertCondition(fullPath.startsWith(BASE_PATH), "Not in repository: " 
             + filename);
@@ -203,7 +206,8 @@ public class Base {
         return contents;
     }
 
-    private static void readTree(String oid, String base, List<String[]> entries) {
+    private static void readTree(String oid, String base, List<String[]> 
+        entries) {
         String content = new String(Data.readObject(oid, "tree"), 
             StandardCharsets.UTF_8);
         for (String line : content.split("\n")) {
@@ -228,12 +232,12 @@ public class Base {
         Map<String, String> fileSet2 = readWorkingDir();
 
         // checks if all the files will be overwritten is tracked.
-        boolean allTracked = all(fileSet1.keySet(), (file) -> isCommitted(file, 
+        boolean allTracked = all(fileSet1.keySet(), (file) -> isIdentical(file, 
             fileSet0, fileSet2));
         assertCondition(allTracked, "Not all files are tracked.");
         // deletes all the files that will be overwritten.
         Collection<String> deletedFiles = filter(fileSet0.keySet(), (file) -> 
-            isCommitted(file, fileSet0, fileSet2));
+            isIdentical(file, fileSet0, fileSet2));
         forEach(deletedFiles, (file) -> deleteFile(join(BASE_PATH, file)));
         // copies the files from the index to the working directory.
         forEach(fileSet1.keySet(), (file) -> writeWorkingDir(file, fileSet1
@@ -242,41 +246,112 @@ public class Base {
         Data.setHead(oid);
     }
 
-    /** Checks if the file FILENAME is committed in the current commit.
-     * @param commit the files and corresponding hashes in the current commit.
-     * @param workDir the files and corresponding hashes in the working 
-     * directory. */
-    private static boolean isCommitted(String filename, Map<String, String> 
-        commit, Map<String, String> workDir) {
-        return commit.containsKey(filename) == workDir.containsKey(filename); 
+    /** Checks if the file FILENAME is identical in the two sets of files.
+     * @param set1 the files and corresponding hashes in the first set. */
+    private static boolean isIdentical(String filename, Map<String, String> 
+        set1, Map<String, String> set2) {
+        return set1.containsKey(filename) == set2.containsKey(filename) 
+            && set1.getOrDefault(filename, "").equals(set2
+            .getOrDefault(filename, ""));
     }
 
     /** @return the files and corresponding hashes in the working directory. */
     private static Map<String, String> readWorkingDir() {
         Map<String, String> contents = new HashMap<>();
         File base = new File(BASE_PATH);
-        forEach(getFiles(base), (file) -> contents.put(getRelativePath(file), 
-            restrictedHashBlob(file)));
+        Collection<String> paths = map(getFiles(base), (file) -> 
+            getRelativePath(file));
+        Collection<String> files = removeIgnored(paths);
+        forEach(files, (file) -> contents.put(file, restrictedHashBlob(file)));
         return contents;
     }
 
-    /** Checks if all the files is tracked by the current commit. */
-    public static boolean isAllTracked(Collection<String> files) {
-        String oid = Data.getHead();
-        Commit commit = Data.readCommit(oid);
-        Map<String, String> entries = readTree(commit.getTree());
-        return all(files, (file) -> entries.containsKey(file));
+    private static Collection<String> removeIgnored(Collection<String> paths) {
+        List<String> patterns = Data.getIgnorePatterns();
+        return filter(paths, (path) -> !isIgnored(path, patterns));
+    }
+
+    /** Checks if the path of the file is ignored.
+     * @param path the path of the file to be checked. Assumes the path is 
+     * relative to the repository root. 
+     * @param patterns the list of ignore patterns. For efficiency, we pass
+     * the patterns as a parameter instead of reading them from the repository.
+     */
+    private static boolean isIgnored(String path, List<String> patterns) {
+        return path.startsWith(".gitlet") || any(patterns, (p) -> {
+            Pattern pattern = Pattern.compile(p);
+            return pattern.matcher(path).matches();
+        });
     }
 
     /** Writes the object to the working directory as the given path. 
-     * @param path the path to the file to be created. the path is relative to the 
-     * repository root. 
-     * @param oid the hash of the object to be written. Assumes the object is a blob.
-     */
+     * @param path the path to the file to be created. the path is relative to 
+     * the repository root. 
+     * @param oid the hash of the object to be written. Assumes the object is a
+     * blob. */
     private static void writeWorkingDir(String path, String oid) {
         byte[] content = Data.readObject(oid, "blob");
         File file = join(BASE_PATH, path);
         createFile(file);
         writeContents(file, content);
     }
+
+    /** @return the status of the repository. */
+    public static String status() {
+        String content = "";
+        // TODO: get the current branch
+        content += statusHeadIndex(Data.readIndex());
+        content += statusIndexWorkingDir(Data.readIndex());
+        return content;
+    }
+
+    private static String statusHeadIndex(Map<String, String> index) {
+        // 0. head - index   1. head & index   2. index - head
+        //    deleted files     modified files    new files
+        String oid = Data.getHead();
+        Commit commit = Data.readCommit(oid);
+        Map<String, String> commitSet = readTree(commit.getTree());
+        Set<String> set0 = difference(commitSet.keySet(), index.keySet());
+        Set<String> set1 = intersection(commitSet.keySet(), index.keySet());
+        Set<String> set2 = difference(index.keySet(), commitSet.keySet());
+        Collection<String> modified = filter(set1, (file) -> !isIdentical(file,
+            commitSet, index));
+
+        String newFileStr  = "    new file: %s\n";
+        String modifiedStr = "    modified: %s\n";
+        String deletedStr  = "    deleted: %s\n";
+        StringBuilder content = new StringBuilder();
+        content.append("Changes to be committed:\n");
+        forEach(set2, (f) -> content.append(String.format(newFileStr, f)));
+        forEach(modified, (f) -> content.append(String.format(modifiedStr, 
+            f)));
+        forEach(set0, (f) -> content.append(String.format(deletedStr, f)));
+        content.append("\n");
+        return content.toString();
+    }
+
+    private static String statusIndexWorkingDir(Map<String, String> index) {
+        // 0. index - work dir   1. index & work dir   2. work dir - index
+        //    untracked files       modified files        deleted files
+        Map<String, String> workSet = readWorkingDir();
+        Set<String> set0 = difference(workSet.keySet(), index.keySet());
+        Set<String> set1 = intersection(workSet.keySet(), index.keySet());
+        Set<String> set2 = difference(index.keySet(), workSet.keySet());
+        Collection<String> modified = filter(set1, (file) -> !isIdentical(file,
+            workSet, index));
+
+        String modifiedStr = "    modified: %s\n";
+        String deletedStr  = "    deleted: %s\n";
+        String untrackedStr  = "    %s\n";
+        StringBuilder content = new StringBuilder();
+        content.append("Changes not staged for commit:\n");
+        forEach(modified, (f) -> content.append(String.format(modifiedStr, 
+            f)));
+        forEach(set2, (f) -> content.append(String.format(deletedStr, f)));
+        content.append("\n");
+        content.append("Untracked files:\n");
+        forEach(set0, (f) -> content.append(String.format(untrackedStr, f)));
+        return content.toString();
+    }
+
 }

@@ -87,4 +87,10 @@ public class Repository {
         Base.checkout(oid);
         System.out.println("Switched to commit " + oid + ".");
     }
+
+    // status
+    public static void status() {
+        Data.assertInitialized();
+        System.out.print(Base.status());
+    }
 }
