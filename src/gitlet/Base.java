@@ -199,9 +199,10 @@ public class Base {
 
     public static void checkoutBranch(String name) {
         String branch = "refs/heads/" + name;
-        String oldBranch = Data.readHead();
-        assertCondition(!branch.equals(oldBranch), String.format("Already on "
-            + "'%s'", name));
+        String headContent = Data.readHead();
+        assertCondition(!headContent.startsWith(Data.REF_PREFIX) || !branch
+            .equals(headContent.substring(Data.REF_PREFIX_LEN)), String
+            .format("Already on '%s'", name));
 
         String oid = Data.getRef(branch);
         Data.assertObjectExists(oid);
@@ -289,8 +290,15 @@ public class Base {
 
     /** @return the status of the repository. */
     public static String status() {
+        String headContent = Data.readHead();
         String content = "";
-        // TODO: get the current branch
+        // get the current position of HEAD
+        if (headContent.startsWith(Data.REF_PREFIX)) {
+            String branch = headContent.substring(Data.REF_PREFIX_LEN);
+            content += String.format("On branch %s\n", basename(branch));
+        } else {
+            content += String.format("HEAD detached at %s\n", headContent);
+        }
         content += statusHeadIndex(Data.readIndex());
         content += statusIndexWorkingDir(Data.readIndex());
         return content;

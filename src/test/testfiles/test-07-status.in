@@ -13,6 +13,7 @@
 < java -jar gitlet.jar add foo/baz.txt
 >>>
 < java -jar gitlet.jar status
+On branch master
 Changes to be committed:
     new file: foo/ba[rz].txt
     new file: foo/ba[rz].txt
@@ -26,6 +27,7 @@ Untracked files:
 ([\da-f]{40})
 >>>*
 < java -jar gitlet.jar status
+On branch master
 Changes to be committed:
 
 Changes not staged for commit:
@@ -40,6 +42,7 @@ Untracked files:
 < java -jar gitlet.jar add foo/bar.txt
 >>>
 < java -jar gitlet.jar status
+On branch master
 Changes to be committed:
     modified: foo/bar.txt
 
@@ -54,6 +57,7 @@ Untracked files:
 < rm foo/baz.txt
 >>>
 < java -jar gitlet.jar status
+On branch master
 Changes to be committed:
     deleted: foo/bar.txt
 

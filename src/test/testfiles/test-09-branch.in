@@ -1,0 +1,58 @@
+# create a.txt
+< echo "a" > a.txt
+>>>
+< java -jar gitlet.jar init
+>>>
+< java -jar gitlet.jar add a.txt
+>>>
+< java -jar gitlet.jar status
+On branch master
+Changes to be committed:
+    new file: a.txt
+
+Changes not staged for commit:
+
+Untracked files:
+>>>
+< java -jar gitlet.jar commit "add a.txt"
+([\da-f]{40})
+>>>*
+D cid1 = ${1}
+< java -jar gitlet.jar branch foo
+>>>
+< java -jar gitlet.jar branch | sort
+foo
+master
+>>>
+< java -jar gitlet.jar checkout foo
+Switched to branch 'foo'.
+>>>
+< java -jar gitlet.jar rm a.txt
+>>>
+< java -jar gitlet.jar commit "remove a.txt"
+([\da-f]{40})
+>>>*
+D cid2 = ${1}
+# create b.txt
+< echo "b" > b.txt
+>>>
+< java -jar gitlet.jar add b.txt
+>>>
+< java -jar gitlet.jar status
+On branch foo
+Changes to be committed:
+    new file: b.txt
+
+Changes not staged for commit:
+
+Untracked files:
+>>>
+< java -jar gitlet.jar commit "add b.txt"
+([\da-f]{40})
+>>>*
+D cid3 = ${1}
+< java -jar gitlet.jar checkout master
+Switched to branch 'master'.
+>>>
+EF a.txt 
+NEF b.txt

@@ -31,6 +31,7 @@ public class Data {
     public static final File IGNORES_FILE = join(BASE_DIR, ".gitletignore");
 
     public static final String REF_PREFIX = "ref: ";
+    public static final int REF_PREFIX_LEN = REF_PREFIX.length();
     private static final byte NULL_BYTE = 0;
 
     static class Commit {
@@ -90,13 +91,9 @@ public class Data {
         writeContents(HEAD_FILE, content);
     }
 
-    /** Read the content of the HEAD file.
-     * @return the content of the HEAD file, if it is a sha1 value, else return
-     * the ref name. */
+    /** @return the content of the HEAD file. */
     public static String readHead() {
-        String content = readContentsAsString(HEAD_FILE);
-        assert !content.isEmpty() : "HEAD file is empty.";
-        return content.startsWith(REF_PREFIX) ? content.substring(5) : content;
+        return readContentsAsString(HEAD_FILE);
     }
 
     public static void updateHead(String ref) {
@@ -115,7 +112,7 @@ public class Data {
         File refFile = join(GITLET_DIR, ref);
         String content = readContentsAsString(refFile);
         if (content.startsWith(REF_PREFIX)) {
-            return getRef(content.substring(5));
+            return getRef(content.substring(REF_PREFIX_LEN));
         } else {
             return content;
         }
@@ -126,7 +123,7 @@ public class Data {
         File refFile = join(GITLET_DIR, ref);
         String refContent = readContentsAsString(refFile);
         if (refContent.startsWith(REF_PREFIX)) {
-            updateRef(refContent.substring(5), content);
+            updateRef(refContent.substring(REF_PREFIX_LEN), content);
         } else {
             writeContents(refFile, content);
         }
