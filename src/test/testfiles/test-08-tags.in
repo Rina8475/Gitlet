@@ -1,0 +1,41 @@
+< mkdir foo
+>>>
+< echo "hello" > foo/bar.txt
+>>>
+< echo "world" > foo/baz.txt
+>>>
+< echo "demo" > demo.txt
+>>>
+< java -jar gitlet.jar init
+>>>
+< java -jar gitlet.jar add foo
+>>>
+< java -jar gitlet.jar commit "add bar and baz files"
+([\da-f]{40})
+>>>*
+D cid1 = ${1}
+< java -jar gitlet.jar add demo.txt
+>>>
+< java -jar gitlet.jar commit "add demo file"
+([\da-f]{40})
+>>>*
+D cid2 = ${1}
+< java -jar gitlet.jar tag label1 ${cid1}
+>>>
+< java -jar gitlet.jar tag label2 
+>>>
+< java -jar gitlet.jar tag
+label1
+label2
+>>>
+< java -jar gitlet.jar checkout label1
+Switched to tag 'label1'.
+>>>
+NEF demo.txt
+< java -jar gitlet.jar checkout label2
+Switched to tag 'label2'.
+>>>
+EF demo.txt
+< cat demo.txt
+demo
+>>>
