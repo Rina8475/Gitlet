@@ -2,6 +2,7 @@
 
 package gitlet;
 
+import java.util.regex.*;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -81,16 +82,65 @@ public class Repository {
     /** checkout - Convert the working directory to the specified commit.
      * Only when all the files that will be overwritten have been staged, the
      * checkout operation will succeed, other files will be left unchanged. */
-    public static void checkout(String oid) {
+    public static void checkout(String name) {
         Data.assertInitialized();
-        Data.assertObjectExists(oid);
+        String type = resolveRefsOrOids(name);
+        String oid = validateRefsOrOids(name);
         Base.checkout(oid);
-        System.out.println("Switched to commit " + oid + ".");
+        System.out.printf("Switched to %s '%s'.\n", type, name);
+    }
+
+    private static String resolveRefsOrOids(String name) {
+        Pattern pattern = Pattern.compile("^[0-9a-f]{40}$");
+        if (pattern.matcher(name).matches()) {
+            return "commit";
+        } else if (Base.getTags().contains(name)) {
+            return "tag";
+        }
+        return null;
+    }
+
+    /** checks if the name is a validate ref or oid, and returns the resolved 
+     * oid. */
+    private static String validateRefsOrOids(String name) {
+        String oid = "";
+        switch (resolveRefsOrOids(name)) {
+            case "commit":
+                oid = name;
+                break;
+            case "tag":
+                oid = Data.getRef("refs/tags/" + name);
+                break;
+            default:
+                error(String.format("pathspec '%s' did not match any file(s) "
+                    + "known to gitlet", name));
+        }
+        Data.assertObjectExists(oid);
+        return oid;
     }
 
     // status
     public static void status() {
         Data.assertInitialized();
         System.out.print(Base.status());
+    }
+
+    // tag 
+    public static void tag(String name) {
+        Data.assertInitialized();
+        Base.createTag(name, Data.getHead());
+    }
+
+    // tag
+    public static void tag(String name, String oid) {
+        Data.assertInitialized();
+        Data.assertObjectExists(oid);
+        Base.createTag(name, oid);
+    }
+
+    // tag-list
+    public static void tag() {
+        Data.assertInitialized();
+        System.out.print(Base.tagList());
     }
 }

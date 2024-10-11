@@ -64,31 +64,6 @@ public class Base {
         Data.writeIndex(index);
     }
 
-    /** gets all the files in the path. 
-     * @return a list of all the files in the path. If the path is a file, 
-     * returns a list with that file. If the path is a directory, returns 
-     * a list with all the files in the directory and its subdirectories. */
-    private static List<File> getFiles(File file) {
-        List<File> files = new ArrayList<File>();
-        if (file.isFile()) {
-            files.add(file);
-        } else if (file.isDirectory()) {
-            getFiles(file, files);
-        }
-        return files;
-    }
-
-    private static void getFiles(File dir, List<File> files) {
-        File[] subfiles = dir.listFiles();
-        for (File subfile : subfiles) {
-            if (subfile.isFile()) {
-                files.add(subfile);
-            } else if (subfile.isDirectory()) {
-                getFiles(subfile, files);
-            }
-        }
-    }
-
     /** gets the relative path of the file from the repository root. */
     private static String getRelativePath(File file) {
         return file.getAbsolutePath().substring(BASE_LENGTH);
@@ -354,4 +329,21 @@ public class Base {
         return content.toString();
     }
 
+    public static void createTag(String name, String oid) {
+        assertCondition(!getTags().contains(name), String.format("tag '%s' "
+            + "already exists", name));
+        Data.createRef("refs/tags/" + name, oid);
+    }
+
+    public static String tagList() {
+        Collection<String> tags = getTags();
+        StringBuilder content = new StringBuilder();
+        forEach(tags, (tag) -> content.append(tag + "\n"));
+        return content.toString();
+    }
+
+    public static Collection<String> getTags() {
+        List<File> paths = getFiles(Data.TAG_DIR);
+        return map(paths, (path) -> basename(path.getAbsolutePath()));
+    }
 }

@@ -19,9 +19,15 @@
  * - ls-tree: Displays the contents of a tree object recursively.
  *       Usage: java Main ls-tree <tree>
  * - checkout: Checkout a branch or a commit.
- *       Usage: java Main checkout <branch/commit>
+ *       Usage: java Main checkout <branch/commit/tag>
  * - status: Displays the status of the gitlet repository.
  *       Usage: java Main status
+ * - tag: Creates a tag for the specified commit, if no commit is specified, 
+ * creates a tag for the current commit. If no name is specified, lists all 
+ * tags.
+ *       Usage: java Main tag <name> <commit>
+ *              java Main tag <name>
+ *              java Main tag 
 */
 
 package gitlet;
@@ -75,6 +81,10 @@ public class Main {
                 validateArgs(args, 1);
                 Repository.status();
                 break;
+            case "tag":
+                validateArgs(args, 1, 3);
+                tagOperation(args);
+                break;
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(1);
@@ -83,5 +93,20 @@ public class Main {
 
     public static void validateArgs(String[] args, int expectedLen) {
         assertCondition(args.length == expectedLen, "Incorrect operands.");
+    }
+
+    public static void validateArgs(String[] args, int minLen, int maxLen) {
+        assertCondition(args.length >= minLen && args.length <= maxLen, 
+            "Incorrect operands.");
+    }
+
+    private static void tagOperation(String[] args) {
+        if (args.length == 1) {
+            Repository.tag();
+        } else if (args.length == 2) {
+            Repository.tag(args[1]);
+        } else {
+            Repository.tag(args[1], args[2]);
+        } 
     }
 }

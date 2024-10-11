@@ -24,8 +24,11 @@ public class Data {
     public static final File INDEX_FILE = join(GITLET_DIR, "index");
     public static final File REFS_DIR = join(GITLET_DIR, "refs");
     public static final File OBJS_DIR = join(GITLET_DIR, "objects");
-    public static final File IGNORES_FILE = join(Base.BASE_PATH, 
-        ".gitletignore");
+    public static final File BRANCH_DIR = join(REFS_DIR, "heads");
+    public static final File TAG_DIR = join(REFS_DIR, "tags");
+    /* base directory is the parent directory of the .gitlet directory */
+    public static final File BASE_DIR = join(GITLET_DIR, "..");
+    public static final File IGNORES_FILE = join(BASE_DIR, ".gitletignore");
 
     private static final byte NULL_BYTE = 0;
 
@@ -56,6 +59,8 @@ public class Data {
         createDirectory(VIEW_DIR);
         createDirectory(join(VIEW_DIR, "refs"));
         createDirectory(join(VIEW_DIR, "objects"));
+        createDirectory(join(VIEW_DIR, "refs", "heads"));
+        createDirectory(join(VIEW_DIR, "refs", "tags"));
         createFile(join(VIEW_DIR, "HEAD"));
         createFile(join(VIEW_DIR, "index"));
     }
@@ -80,12 +85,36 @@ public class Data {
     }
 
     public static void setHead(String ref) {
-        writeContents(HEAD_FILE, ref);
+        updateRef("HEAD", ref);
     }
 
     /** Returns the id of the current HEAD commit. */
     public static String getHead() {
-        return readContentsAsString(HEAD_FILE);
+        return getRef("HEAD");
+    }
+
+    /** @param ref the path of the ref to get, relative to the .gitlet 
+     * directory, e.g. "refs/heads/master".
+     * @return the id of the commit pointed by the given ref */
+    public static String getRef(String ref) {
+        File refFile = join(GITLET_DIR, ref);
+        String content = readContentsAsString(refFile);
+        if (content.startsWith("ref: ")) {
+            return getRef(content.substring(5));
+        } else {
+            return content;
+        }
+    }
+
+    public static void updateRef(String ref, String content) {
+        File refFile = join(GITLET_DIR, ref);
+        writeContents(refFile, content);
+    }
+
+    public static void createRef(String ref, String content) {
+        File refFile = join(GITLET_DIR, ref);
+        createFile(refFile);
+        writeContents(refFile, content);
     }
 
     public static String writeCommit(Commit commit) {
@@ -177,7 +206,7 @@ public class Data {
 
     /** Returns the base path of the current working directory. */
     public static String getBasePath() {
-        String path = join(GITLET_DIR, "..").getAbsolutePath();
+        String path = BASE_DIR.getAbsolutePath();
         return path.endsWith("/") ? path : path + "/";
     }
 

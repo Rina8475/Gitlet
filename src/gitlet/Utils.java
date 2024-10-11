@@ -2,6 +2,7 @@
 
 package gitlet;
 
+import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Collection;
@@ -52,6 +53,31 @@ public class Utils {
 
     public static void deleteFile(File file) {
         file.delete();
+    }
+
+    /** gets all the files in the path. 
+     * @return a list of all the files in the path. If the path is a file, 
+     * returns a list with that file. If the path is a directory, returns 
+     * a list with all the files in the directory and its subdirectories. */
+    public static List<File> getFiles(File file) {
+        List<File> files = new ArrayList<File>();
+        if (file.isFile()) {
+            files.add(file);
+        } else if (file.isDirectory()) {
+            getFiles(file, files);
+        }
+        return files;
+    }
+
+    private static void getFiles(File dir, List<File> files) {
+        File[] subfiles = dir.listFiles();
+        for (File subfile : subfiles) {
+            if (subfile.isFile()) {
+                files.add(subfile);
+            } else if (subfile.isDirectory()) {
+                getFiles(subfile, files);
+            }
+        }
     }
 
     /** Reads the contents of the given file as a byte array.
@@ -106,9 +132,13 @@ public class Utils {
 
     public static void assertCondition(boolean condition, String message) {
         if (!condition) {
-            System.err.println(message);
-            System.exit(1);
+            error(message);
         }
+    }
+
+    public static void error(String message) {
+        System.err.println(message);
+        System.exit(1);
     }
 
     public static void assertFileExists(String filename) {
