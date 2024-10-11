@@ -28,6 +28,9 @@
  *       Usage: java Main tag <name> <commit>
  *              java Main tag <name>
  *              java Main tag 
+ * - branch: Creates a new branch or lists all branches.
+ *       Usage: java Main branch <name>
+ *              java Main branch 
 */
 
 package gitlet;
@@ -84,6 +87,14 @@ public class Main {
             case "tag":
                 validateArgs(args, 1, 3);
                 tagOperation(args);
+                break;
+            case "branch":
+                validateArgs(args, 1, 2);
+                if (args.length == 1) {
+                    Repository.branch();
+                } else {
+                    Repository.branch(args[1]);
+                }
                 break;
             default:
                 System.out.println("No command with that name exists.");

@@ -24,7 +24,8 @@ public class Base {
         Data.init();
         String oid = Data.writeCommit(new Commit(writeTree(), null, 
             "initial commit"));
-        Data.setHead(oid);
+        createBranch("master", oid);
+        Data.writeHead("ref: /refs/heads/master");
     }
 
     /** Creates a new blob object with the given file. */
@@ -146,7 +147,7 @@ public class Base {
         String parent = Data.getHead();
         Commit commit = new Commit(writeTree(), parent, message);
         String oid = Data.writeCommit(commit);
-        Data.setHead(oid);
+        Data.updateHead(oid);
         return oid;
     }
 
@@ -196,9 +197,26 @@ public class Base {
         }
     }
 
+    public static void checkoutBranch(String name) {
+        String branch = "refs/heads/" + name;
+        String oldBranch = Data.readHead();
+        assertCondition(!branch.equals(oldBranch), String.format("Already on "
+            + "'%s'", name));
+
+        String oid = Data.getRef(branch);
+        Data.assertObjectExists(oid);
+        checkout(oid);
+        Data.writeHead(Data.REF_PREFIX + branch);
+    }
+
+    public static void checkoutCommit(String oid) {
+        checkout(oid);
+        Data.writeHead(oid);
+    }
+
     /** Reads the commit OID and overwrites the working directory with the 
      * commit. */
-    public static void checkout(String oid) {
+    private static void checkout(String oid) {
         // 0. current commit    1. target commit    2. current working dir
         Commit c0 = Data.readCommit(Data.getHead());
         Commit c1 = Data.readCommit(oid);
@@ -217,8 +235,6 @@ public class Base {
         // copies the files from the index to the working directory.
         forEach(fileSet1.keySet(), (file) -> writeWorkingDir(file, fileSet1
             .get(file)));
-        // updates the HEAD pointer to point to the new commit.
-        Data.setHead(oid);
     }
 
     /** Checks if the file FILENAME is identical in the two sets of files.
@@ -344,6 +360,24 @@ public class Base {
 
     public static Collection<String> getTags() {
         List<File> paths = getFiles(Data.TAG_DIR);
+        return map(paths, (path) -> basename(path.getAbsolutePath()));
+    }
+
+    public static void createBranch(String name, String oid) {
+        assertCondition(!getBranches().contains(name), String.format("branch "
+            + "'%s' already exists", name));
+        Data.createRef("refs/heads/" + name, oid);
+    }
+
+    public static String branchList() {
+        Collection<String> branches = getBranches();
+        StringBuilder content = new StringBuilder();
+        forEach(branches, (branch) -> content.append(branch + "\n"));
+        return content.toString();
+    }
+
+    public static Collection<String> getBranches() {
+        List<File> paths = getFiles(Data.BRANCH_DIR);
         return map(paths, (path) -> basename(path.getAbsolutePath()));
     }
 }

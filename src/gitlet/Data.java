@@ -30,6 +30,7 @@ public class Data {
     public static final File BASE_DIR = join(GITLET_DIR, "..");
     public static final File IGNORES_FILE = join(BASE_DIR, ".gitletignore");
 
+    public static final String REF_PREFIX = "ref: ";
     private static final byte NULL_BYTE = 0;
 
     static class Commit {
@@ -84,7 +85,21 @@ public class Data {
         return findRepository(parent);
     }
 
-    public static void setHead(String ref) {
+    /** Write the content to the HEAD directly. */
+    public static void writeHead(String content) {
+        writeContents(HEAD_FILE, content);
+    }
+
+    /** Read the content of the HEAD file.
+     * @return the content of the HEAD file, if it is a sha1 value, else return
+     * the ref name. */
+    public static String readHead() {
+        String content = readContentsAsString(HEAD_FILE);
+        assert !content.isEmpty() : "HEAD file is empty.";
+        return content.startsWith(REF_PREFIX) ? content.substring(5) : content;
+    }
+
+    public static void updateHead(String ref) {
         updateRef("HEAD", ref);
     }
 
@@ -99,16 +114,22 @@ public class Data {
     public static String getRef(String ref) {
         File refFile = join(GITLET_DIR, ref);
         String content = readContentsAsString(refFile);
-        if (content.startsWith("ref: ")) {
+        if (content.startsWith(REF_PREFIX)) {
             return getRef(content.substring(5));
         } else {
             return content;
         }
     }
 
+    /** Update the deepest-ref with the given content. */
     public static void updateRef(String ref, String content) {
         File refFile = join(GITLET_DIR, ref);
-        writeContents(refFile, content);
+        String refContent = readContentsAsString(refFile);
+        if (refContent.startsWith(REF_PREFIX)) {
+            updateRef(refContent.substring(5), content);
+        } else {
+            writeContents(refFile, content);
+        }
     }
 
     public static void createRef(String ref, String content) {

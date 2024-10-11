@@ -85,8 +85,19 @@ public class Repository {
     public static void checkout(String name) {
         Data.assertInitialized();
         String type = resolveRefsOrOids(name);
-        String oid = validateRefsOrOids(name);
-        Base.checkout(oid);
+        if ("branch".equals(type)) {
+            Base.checkoutBranch(name);
+        } else if ("tag".equals(type)) {
+            String oid = Data.getRef("refs/tags/" + name);
+            Data.assertObjectExists(oid);
+            Base.checkoutCommit(oid);
+        } else if ("commit".equals(type)) {
+            Data.assertObjectExists(name);
+            Base.checkoutCommit(name);
+        } else {
+            error(String.format("pathspec '%s' did not match any file(s) "
+                    + "known to gitlet", name));
+        }
         System.out.printf("Switched to %s '%s'.\n", type, name);
     }
 
@@ -96,6 +107,8 @@ public class Repository {
             return "commit";
         } else if (Base.getTags().contains(name)) {
             return "tag";
+        } else if (Base.getBranches().contains(name)) {
+            return "branch";
         }
         return null;
     }
@@ -110,6 +123,9 @@ public class Repository {
                 break;
             case "tag":
                 oid = Data.getRef("refs/tags/" + name);
+                break;
+            case "branch":
+                oid = Data.getRef("refs/heads/" + name);
                 break;
             default:
                 error(String.format("pathspec '%s' did not match any file(s) "
@@ -132,15 +148,28 @@ public class Repository {
     }
 
     // tag
-    public static void tag(String name, String oid) {
+    public static void tag(String tagname, String name) {
         Data.assertInitialized();
+        String oid = validateRefsOrOids(name);
         Data.assertObjectExists(oid);
-        Base.createTag(name, oid);
+        Base.createTag(tagname, oid);
     }
 
     // tag-list
     public static void tag() {
         Data.assertInitialized();
         System.out.print(Base.tagList());
+    }
+
+    // branch
+    public static void branch() {
+        Data.assertInitialized();
+        System.out.print(Base.branchList());
+    }
+
+    // branch
+    public static void branch(String name) {
+        Data.assertInitialized();
+        Base.createBranch(name, Data.getHead());
     }
 }
