@@ -86,7 +86,13 @@ public class Main {
                 break;
             case "tag":
                 validateArgs(args, 1, 3);
-                tagOperation(args);
+                if (args.length == 1) {
+                    Repository.tag();
+                } else if (args.length == 2) {
+                    Repository.tag(args[1]);
+                } else {
+                    Repository.tag(args[1], args[2]);
+                }
                 break;
             case "branch":
                 validateArgs(args, 1, 2);
@@ -109,15 +115,5 @@ public class Main {
     public static void validateArgs(String[] args, int minLen, int maxLen) {
         assertCondition(args.length >= minLen && args.length <= maxLen, 
             "Incorrect operands.");
-    }
-
-    private static void tagOperation(String[] args) {
-        if (args.length == 1) {
-            Repository.tag();
-        } else if (args.length == 2) {
-            Repository.tag(args[1]);
-        } else {
-            Repository.tag(args[1], args[2]);
-        } 
     }
 }

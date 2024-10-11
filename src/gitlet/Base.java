@@ -216,7 +216,9 @@ public class Base {
     }
 
     /** Reads the commit OID and overwrites the working directory with the 
-     * commit. */
+     * commit. 
+     * After this operation, the staging area will be empty, i.e., the index is
+     * identical with the target commit. */
     private static void checkout(String oid) {
         // 0. current commit    1. target commit    2. current working dir
         Commit c0 = Data.readCommit(Data.getHead());
@@ -236,6 +238,8 @@ public class Base {
         // copies the files from the index to the working directory.
         forEach(fileSet1.keySet(), (file) -> writeWorkingDir(file, fileSet1
             .get(file)));
+        // rewrites the index with the target commit.
+        Data.writeIndex(fileSet1);
     }
 
     /** Checks if the file FILENAME is identical in the two sets of files.
