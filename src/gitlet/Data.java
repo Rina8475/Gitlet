@@ -2,6 +2,11 @@ package gitlet;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Queue;
+import java.util.LinkedList;
+import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.io.File;
 import java.util.Arrays;
@@ -34,26 +39,76 @@ public class Data {
     public static final int REF_PREFIX_LEN = REF_PREFIX.length();
     private static final byte NULL_BYTE = 0;
 
-    static class Commit {
+    /*********************
+     * Commit Operations *
+     *********************/
+    private static class Commit {
         private final String tree;
-        private final String parent;
         private final String message;
+        private final List<String> parents;
 
-        public Commit(String tree, String parent, String message) {
-            this.tree = tree;
-            this.parent = parent;
-            this.message = message;
+        Commit(String tid, String msg, String... pids) {
+            this.tree = tid;
+            this.message = msg;
+            this.parents = Arrays.asList(pids);
         }
+    }
 
-        public String toString() {
-            String parentLine = parent == null ? "" : String.format(
-                "parent %s\n", parent);
-            return String.format("tree %s\n%s\n%s\n", tree, parentLine, message);
+    public static String writeCommit(String tid, String msg, String... pids) {
+        String parentStr = String.join(" ", pids);
+        parentStr = parentStr.isEmpty() ? "" : String.format("parent %s\n",
+            parentStr);
+        String content = String.format("tree %s\n%s\n%s\n", tid, parentStr, msg);
+        return hashObject(content.getBytes(StandardCharsets.UTF_8), "commit");
+    }
+
+    private static Commit readCommit(String id) {
+        String content = new String(readObject(id, "commit"), StandardCharsets
+            .UTF_8);
+        String[] lines = content.split("\n+");
+        String tree = lines[0].split(" ")[1];
+        String[] tokens = lines[1].split(" ");
+        boolean hasParent = tokens[0].equals("parent");
+        String message = hasParent ? lines[2] : lines[1];
+        String[] parents = hasParent ? Arrays.copyOfRange(tokens, 1, tokens
+            .length) : new String[0];
+        return new Commit(tree, message, parents);
+    }
+
+    public static String getCommitTree(String id) {
+        return readCommit(id).tree;
+    }
+
+    public static String getCommitMessage(String id) {
+        return readCommit(id).message;
+    }
+
+    public static List<String> getCommitParents(String id) {
+        return readCommit(id).parents;
+    }
+
+    /** This method back to the ancestor of the given commit and collects all 
+     * the ids of the commits. 
+     * This method is used for log command.
+     * @returns the list of the commits that are ancestors of the given commit.
+     */
+    public static List<String> getCommitAncestors(String id) {
+        List<String> ancestors = new ArrayList<>();
+        Set<String> visited = new HashSet<>();
+        Queue<String> queue = new LinkedList<>();
+        visited.add(id);
+        queue.add(id);
+        while (!queue.isEmpty()) {
+            String commit = queue.poll();
+            ancestors.add(commit);
+            for (String parent : getCommitParents(commit)) {
+                if (!visited.contains(parent)) {
+                    visited.add(commit);
+                    queue.add(parent);
+                }
+            }
         }
-
-        public String getTree() { return tree; }
-        public String getParent() { return parent; }
-        public String getMessage() { return message; }
+        return ancestors;
     }
 
     /** Initializes the .gitlet directory and creates the necessary files. */
@@ -133,23 +188,6 @@ public class Data {
         File refFile = join(GITLET_DIR, ref);
         createFile(refFile);
         writeContents(refFile, content);
-    }
-
-    public static String writeCommit(Commit commit) {
-        String content = commit.toString();
-        return hashObject(content.getBytes(StandardCharsets.UTF_8), "commit");
-    }
-
-    public static Commit readCommit(String id) {
-        String content = new String(readObject(id, "commit"), StandardCharsets
-            .UTF_8);
-        String[] lines = content.split("\n+");
-        String tree = lines[0].split(" ")[1];
-        String[] tokens = lines[1].split(" ");
-        boolean hasParent = tokens[0].equals("parent");
-        String parent = hasParent ? tokens[1] : null;
-        String message = hasParent ? lines[2] : lines[1];
-        return new Commit(tree, parent, message);
     }
 
     /** Create a new gitlet object with the given content and type.

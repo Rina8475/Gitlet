@@ -68,7 +68,7 @@ public class Repository {
     // log
     public static void log() {
         Data.assertInitialized();
-        System.out.println(Base.log());
+        System.out.print(Base.log());
     }
 
     /** ls-tree - List the contents of a tree object recursively. This command

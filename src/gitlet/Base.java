@@ -12,7 +12,6 @@ import java.util.TreeMap;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 
-import gitlet.Data.Commit;
 import static gitlet.Utils.*;
 
 public class Base {
@@ -22,8 +21,7 @@ public class Base {
     /** Initializes the repository. */
     public static void init() {
         Data.init();
-        String oid = Data.writeCommit(new Commit(writeTree(), null, 
-            "initial commit"));
+        String oid = Data.writeCommit(writeTree(), "initial commit");
         createBranch("master", oid);
         Data.writeHead("ref: /refs/heads/master");
     }
@@ -145,8 +143,7 @@ public class Base {
      * @return the hash of the new commit object. */
     public static String commit(String message) {
         String parent = Data.getHead();
-        Commit commit = new Commit(writeTree(), parent, message);
-        String oid = Data.writeCommit(commit);
+        String oid = Data.writeCommit(writeTree(), message, parent);
         Data.updateHead(oid);
         return oid;
     }
@@ -154,14 +151,12 @@ public class Base {
     /** @return the log of all the commits. */
     public static String log() {
         String oid = Data.getHead();
-        StringBuilder content = new StringBuilder();
-        while (oid != null) {
-            Commit commit = Data.readCommit(oid);
-            content.append(String.format("commit %s\n%s\n", oid, commit
-                .toString()));
-            oid = commit.getParent();
-        }
-        return content.toString();
+        List<String> commits = Data.getCommitAncestors(oid);
+        Collection<String> lines = map(commits, (cid) -> {
+            String message = Data.getCommitMessage(cid);
+            return String.format("commit %s\n\n%s\n", cid, message);
+        });
+        return String.join("\n", lines);
     }
 
     /** @return the contents of the tree object. */
@@ -221,10 +216,10 @@ public class Base {
      * identical with the target commit. */
     private static void checkout(String oid) {
         // 0. current commit    1. target commit    2. current working dir
-        Commit c0 = Data.readCommit(Data.getHead());
-        Commit c1 = Data.readCommit(oid);
-        Map<String, String> fileSet0 = readTree(c0.getTree());
-        Map<String, String> fileSet1 = readTree(c1.getTree());
+        String tid0 = Data.getCommitTree(Data.getHead());
+        String tid1 = Data.getCommitTree(oid);
+        Map<String, String> fileSet0 = readTree(tid0);
+        Map<String, String> fileSet1 = readTree(tid1);
         Map<String, String> fileSet2 = readWorkingDir();
 
         // checks if all the files will be overwritten is tracked.
@@ -312,8 +307,7 @@ public class Base {
         // 0. head - index   1. head & index   2. index - head
         //    deleted files     modified files    new files
         String oid = Data.getHead();
-        Commit commit = Data.readCommit(oid);
-        Map<String, String> commitSet = readTree(commit.getTree());
+        Map<String, String> commitSet = readTree(Data.getCommitTree(oid));
         Set<String> set0 = difference(commitSet.keySet(), index.keySet());
         Set<String> set1 = intersection(commitSet.keySet(), index.keySet());
         Set<String> set2 = difference(index.keySet(), commitSet.keySet());

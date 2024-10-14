@@ -10,7 +10,6 @@
 >>>
 < java -jar gitlet.jar log
 commit ([\da-f]{40})
-tree ([\da-f]{40})
 
 initial commit
 >>>*
@@ -43,25 +42,18 @@ D cid3 = ${1}
 D cid4 = ${1}
 < java -jar gitlet.jar log
 commit ${cid4}
-tree ([\da-f]{40})
-parent ${cid3}
 
 add baz.txt
 
 commit ${cid3}
-tree ([\da-f]{40})
-parent ${cid2}
 
 add bar.txt
 
 commit ${cid2}
-tree ([\da-f]{40})
-parent ${cid1}
 
 add demo.txt
 
 commit ${cid1}
-tree ([\da-f]{40})
 
 initial commit
->>>*
+>>>
