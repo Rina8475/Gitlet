@@ -13,99 +13,27 @@ import re
 from shutil import copyfile
 from contextlib import contextmanager
 
-SYMBOLS = {}
 
 class TestException(Exception):
     pass
 
-def read_from_file(file_path):
-    with open(file_path, "r") as f:
-        for line in f:
-            yield line
+####################
+# Tester Operations
+####################
+"""
+Test-file format:
+< <command>
+<expected output>
+>>>
 
-def read_tokens(reader):
-    status = False
-    buffer = ""
-    for line in reader:
-        if line.startswith("<"):
-            yield "<", line[1:].strip()
-            status = True
-        elif status:
-            if line.startswith(">>>*"):
-                yield ">>>*", buffer
-                buffer = ""
-                status = False
-            elif line.startswith(">>>"):
-                yield ">>>", buffer
-                buffer = ""
-                status = False
-            else:
-                buffer += line
-        if line.startswith("EF"):
-            yield "EF", line[2:].strip()
-        if line.startswith("ED"):
-            yield "ED", line[2:].strip()
-        if line.startswith("D"):
-            yield "D", line[1:].strip()
-        if line.startswith("NEF"):
-            yield "NEF", line[3:].strip()
-        if line.startswith("#"):
-            continue
-
-def run_command(command):
-    print(f"Execute: {command}")
-    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = p.communicate()
-    return stdout.decode("utf-8"), stderr.decode("utf-8")
-
-def execute_token(pre, token, remain):
-    if pre == "<":
-        out, err = run_command(token)
-        if err:
-            print(f"Error: {err}")
-            raise TestException()
-        return out
-    elif pre == ">>>":
-        assert type(remain) == str, "remain should be a string"
-        if remain != token:
-            print(f"Unexpected output: \n{compare_strings_icdiff(token, remain)}")
-            raise TestException()
-    elif pre == ">>>*":
-        match = re.match(token, remain)
-        if not match:
-            print(f"Unexpected output: \n>>> (expected)\n{token}<<< (actual)\n{remain}")
-            raise TestException()
-        else:
-            return match
-    elif pre == "D":
-        name, value = token.split("=")
-        name, value = name.strip(), value.strip()
-        if is_valid_name(name) and is_valid_variable(value):
-            group_id = int(get_var_name(value))
-            if group_id > remain.lastindex:
-                print(f"Invalid var name: ${'{' + str(group_id) + '}'}", file=sys.stderr)
-                raise TestException()
-            SYMBOLS[name] = remain.group(group_id)
-        else:
-            print(f"Invalid expression: {token}", file=sys.stderr)
-            raise TestException()
-    elif pre == "EF":
-        for name in token.split():
-            if not is_file_exist(name):
-                print(f"File not found: {name}", file=sys.stderr)
-                raise TestException()
-    elif pre == "ED":
-        for name in token.split():
-            if not is_dir_exist(name):
-                print(f"Directory not found: {name}", file=sys.stderr)
-                print(f"Current directory: {os.getcwd()}", file=sys.stderr)
-                raise TestException()
-    elif pre == "NEF":
-        for name in token.split():
-            if is_file_exist(name):
-                print(f"File exists: {name}", file=sys.stderr)
-                raise TestException()
-    return ""    # default return value
+< <command>
+<expected output> (regex)
+>>>*
+"""
+# symbol table
+SYMBOLS = {}
+# command prefix
+COMMAND_PREFIX = "Execute: "
 
 def replace_token(token): 
     """
@@ -128,6 +56,130 @@ def replace_token(token):
         return token
     return token[:start_idx] + SYMBOLS[var_name] + replace_token(token[start_idx + end_idx + 1:])
 
+def read_from_file(file_path):
+    with open(file_path, "r") as f:
+        for line in f:
+            yield replace_token(line)
+
+def read_tails(reader):
+    buffer = ""
+    for line in reader:
+        if line.startswith(">>>*"):
+            return ">>>*", buffer
+        elif line.startswith(">>>"):
+            return ">>>", buffer
+        else:
+            buffer += line
+
+def read_tokens(reader):
+    for line in reader:
+        if line.startswith("<"):
+            yield "<", (line[1:].strip(), *read_tails(reader))
+        if line.startswith("EF"):
+            yield "EF", line[2:].strip()
+        if line.startswith("ED"):
+            yield "ED", line[2:].strip()
+        if line.startswith("D"):
+            yield "D", line[1:].strip()
+        if line.startswith("NEF"):
+            yield "NEF", line[3:].strip()
+        if line.startswith("#") or line.strip() == "":
+            continue
+
+def do_execute(expression, env):
+    cmd, regex_flag, expected = expression
+    print(COMMAND_PREFIX + cmd)
+    out, err, code = execute_cmd(cmd)
+
+    if regex_flag == ">>>+":
+        if out:
+            raise TestException(f"Output should be empty: \n{out}")
+        if code != 0:
+            raise TestException(f"Command should fail with code {code}")
+        if err != expected:
+            raise TestException(f"Unexpected error: \n{compare_strings_icdiff(expected, err)}")
+        return None
+    if err:
+        raise TestException(f"error: \n{out}\n" + "****************************\n" \
+                            + f"{err}\n")
+    if regex_flag == ">>>*":
+        match = re.match(expected, out)
+        if not match:
+            raise TestException(f"Output does not match regex: \n>>> (expected)\n{expected}" \
+                                + f"<<< (actual)\n{out}")
+        table = {}
+        lastindex = match.lastindex if match.lastindex is not None else 0
+        for i in range(1, lastindex+1):
+            table[str(i)] = match.group(i)
+        return table
+    if regex_flag == ">>>":
+        if out != expected:
+            raise TestException(f"Unexpected output: \n{compare_strings_icdiff(expected, out)}")
+        return None
+    raise TestException(f"Invalid regex flag: {regex_flag}")
+
+def is_valid_name(symbol):
+    return re.match(r"^[a-zA-Z0-9_]+$", symbol)
+
+def is_regex_variable(symbol):
+    """
+    >>> is_regex_variable("${10}")
+    True
+    >>> is_regex_variable("${var}")
+    False
+    >>> is_regex_variable("$var")
+    False
+    """
+    return re.match(r"^\$\{([0-9]+)\}$", symbol) is not None
+
+def get_regex_variable_name(symbol):
+    """
+    >>> get_regex_variable_name("${10}")
+    '10'
+    """
+    return symbol[2:-1]
+
+def do_define(expression, env):
+    name, value = expression.split("=")
+    name, value = name.strip(), value.strip()
+    if not is_valid_name(name):
+        raise TestException(f"Invalid name: {name}")
+    if is_regex_variable(value):
+        SYMBOLS[name] = env[get_regex_variable_name(value)]
+    else: 
+        SYMBOLS[name] = value
+
+def do_assert_file_exist(expression, env):
+    for file_path in expression.split():
+        if not is_file_exist(file_path):
+            raise TestException(f"File not found: {file_path}")
+        
+def do_assert_dir_exist(expression, env):
+    for dir_path in expression.split():
+        if not is_dir_exist(dir_path):
+            raise TestException(f"Directory not found: {dir_path}")
+
+def do_assert_not_file_exist(expression, env):
+    for file_path in expression.split():
+        if is_file_exist(file_path):
+            raise TestException(f"File exists: {file_path}")
+
+SPECIAL_FORMS = {
+    "<": do_execute,
+    "D": do_define,
+    "EF": do_assert_file_exist,
+    "ED": do_assert_dir_exist,
+    "NEF": do_assert_not_file_exist,
+}
+
+def execute_token(pre, expression, env):
+    return SPECIAL_FORMS[pre](expression, env)
+
+def execute_cmd(cmd):
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+    return stdout.decode("utf-8"), stderr.decode("utf-8"), p.returncode
+
 def compare_strings_icdiff(expected, actual):
     """Compare two strings and return the ndiff result"""
     os.mkdir("temp")
@@ -135,23 +187,11 @@ def compare_strings_icdiff(expected, actual):
         f.write(expected)
     with open("temp/actual", "w") as f:
         f.write(actual)
-    out, err = run_command("cd temp && icdiff expected actual")
+    out, _, __ = execute_cmd("cd temp && icdiff expected actual")
     os.remove("temp/expected")
     os.remove("temp/actual")
     os.rmdir("temp")
     return out
-
-def is_valid_name(symbol):
-    return re.match(r"^[a-zA-Z0-9_]+$", symbol)
-
-def is_valid_variable(symbol):
-    """
-    >>> is_valid_variable("${var}")
-    True
-    >>> is_valid_variable("$var")
-    False
-    """
-    return re.match(r"^\$\{([a-zA-Z0-9_]+)\}$", symbol) is not None
 
 def get_var_name(symbol):
     """
@@ -211,11 +251,10 @@ def get_wkd(file_path: str):
 
 def do_test(test_file):
     """do the test for a single file"""
-    remain = ""
+    env = None
     reader = read_from_file(test_file)
     for pre, token in read_tokens(reader):
-        token = replace_token(token)
-        remain = execute_token(pre, token, remain)
+        env = execute_token(pre, token, env)
     print(f"Test {test_file} passed.")
 
 # main
