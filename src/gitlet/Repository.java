@@ -110,7 +110,7 @@ public class Repository {
         } else if (Base.getBranches().contains(name)) {
             return "branch";
         }
-        return null;
+        return name;
     }
 
     /** checks if the name is a validate ref or oid, and returns the resolved 
@@ -126,6 +126,9 @@ public class Repository {
                 break;
             case "branch":
                 oid = Data.getRef("refs/heads/" + name);
+                break;
+            case "HEAD":
+                oid = Data.getHead();
                 break;
             default:
                 error(String.format("pathspec '%s' did not match any file(s) "
@@ -171,5 +174,19 @@ public class Repository {
     public static void branch(String name) {
         Data.assertInitialized();
         Base.createBranch(name, Data.getHead());
+    }
+
+    // merge-base
+    public static void mergeBase(String name1, String name2) {
+        Data.assertInitialized();
+        String oid1 = validateRefsOrOids(name1);
+        String oid2 = validateRefsOrOids(name2);
+        System.out.println(Base.mergeBase(oid1, oid2));
+    }
+
+    // merge
+    public static void merge(String name) {
+        Data.assertInitialized();
+        System.out.println(Base.merge(name));
     }
 }

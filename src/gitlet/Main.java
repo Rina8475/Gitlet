@@ -31,6 +31,10 @@
  * - branch: Creates a new branch or lists all branches.
  *       Usage: java Main branch <name>
  *              java Main branch 
+ * - merge-base: Finds the common ancestor of two commits.
+ *       Usage: java Main merge-base <branch/commit/tag> <branch/commit/tag>
+ * - merge: Merges two branches or commits.
+ *       Usage: java Main merge <branch>
 */
 
 package gitlet;
@@ -101,6 +105,14 @@ public class Main {
                 } else {
                     Repository.branch(args[1]);
                 }
+                break;
+            case "merge-base":
+                validateArgs(args, 3);
+                Repository.mergeBase(args[1], args[2]);
+                break;
+            case "merge":
+                validateArgs(args, 2);
+                Repository.merge(args[1]);
                 break;
             default:
                 System.out.println("No command with that name exists.");

@@ -89,7 +89,7 @@ public class Data {
 
     /** This method back to the ancestor of the given commit and collects all 
      * the ids of the commits. 
-     * This method is used for log command.
+     * This method is used for log command and finding the LCA of two commits.
      * @returns the list of the commits that are ancestors of the given commit.
      */
     public static List<String> getCommitAncestors(String id) {

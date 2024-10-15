@@ -237,4 +237,11 @@ public class Utils {
         result.removeAll(set2);
         return result;
     }
+
+    /** @return set1 | set2 */
+    public static <A> Set<A> union(Set<A> set1, Set<A> set2) {
+        Set<A> result = new HashSet<>(set1);
+        result.addAll(set2);
+        return result;
+    }
 }

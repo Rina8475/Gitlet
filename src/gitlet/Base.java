@@ -107,6 +107,10 @@ public class Base {
      * @return the hash of the new tree object. */
     public static String writeTree() {
         Map<String, String> index = Data.readIndex();
+        return writeTree(index);
+    }
+
+    private static String writeTree(Map<String, String> index) {
         // transfrom the index entries into tree entries
         Map<String, List<String>> tree = new TreeMap<>((x, y) -> y.length() 
             - x.length());
@@ -237,13 +241,19 @@ public class Base {
         Data.writeIndex(fileSet1);
     }
 
-    /** Checks if the file FILENAME is identical in the two sets of files.
-     * @param set1 the files and corresponding hashes in the first set. */
-    private static boolean isIdentical(String filename, Map<String, String> 
-        set1, Map<String, String> set2) {
-        return set1.containsKey(filename) == set2.containsKey(filename) 
-            && set1.getOrDefault(filename, "").equals(set2
-            .getOrDefault(filename, ""));
+    /** Checks if the file FILE is identical in the two sets of files.
+     * @param file the path of the file to be checked, which is relative to the
+     * repository root.
+     * @param set1 the files and corresponding hashes in the first set. 
+     * @return true if 1. file not in set1 && file not in set2
+     *                 2. file in set1 && file in set2
+     *                    && set1.get(file) == set2.get(file) */
+    private static boolean isIdentical(String file, Map<String, String> set1, 
+        Map<String, String> set2) {
+        boolean cond1 = set1.containsKey(file);
+        boolean cond2 = set2.containsKey(file);
+        return !cond1 && !cond2 || cond1 && cond2 && set1.get(file)
+            .equals(set2.get(file));
     }
 
     /** @return the files and corresponding hashes in the working directory. */
@@ -385,5 +395,73 @@ public class Base {
     public static Collection<String> getBranches() {
         List<File> paths = getFiles(Data.BRANCH_DIR);
         return map(paths, (path) -> basename(path.getAbsolutePath()));
+    }
+
+    /** @return the least common ancestor of the two commits. if not found such
+     * ancestor, returns null. */
+    public static String mergeBase(String cid1, String cid2) {
+        Set<String> ancestors1 = new HashSet<>(Data.getCommitAncestors(cid1));
+        for (String ancestor : Data.getCommitAncestors(cid2)) {
+            if (ancestors1.contains(ancestor)) {
+                return ancestor;
+            }
+        }
+        return null;
+    }
+
+    public static String merge(String branch) {
+        // TODO: check if the working directory is clean
+        // TODO: check if the branch exists
+        String remote = Data.getRef("refs/heads/" + branch);
+        String local = Data.getHead();
+        String lca = mergeBase(local, remote);
+        if (lca.equals(remote)) {           // non-fast-forward merge
+            return "Already up to date.";
+        } else if (lca.equals(local)) {     // fast-forward merge 
+            checkout(remote);
+            Data.updateHead(remote);
+            return "Fast-forward merge.";
+        }
+        // three-way merge
+        String merged = threeWayMerge(lca, local, remote, String.format("Merge "
+            + "branch '%s'", branch));
+        checkout(merged);
+        Data.updateHead(merged);
+        return "Merge made by the three-way merge.";
+    }
+
+    private static String threeWayMerge(String base, String local, String 
+        remote, String msg) {
+        Map<String, String> baseTree = readTree(Data.getCommitTree(base));
+        Map<String, String> localTree = readTree(Data.getCommitTree(local));
+        Map<String, String> remoteTree = readTree(Data.getCommitTree(remote));
+        assertCondition(!isConflict(baseTree, localTree, remoteTree),
+            "Conflicts existed.");
+        Map<String, String> merged = threeWayMerge(baseTree, localTree,
+            remoteTree);
+        return Data.writeCommit(writeTree(merged), msg, local, remote);
+    }
+
+    private static boolean isConflict(Map<String, String> base,
+        Map<String, String> local, Map<String, String> remote) {
+        Set<String> targetFiles = union(local.keySet(), remote.keySet());
+        return any(targetFiles, (file) -> !isIdentical(file, base, local) &&
+            !isIdentical(file, base, remote));
+    }
+
+    private static Map<String, String> threeWayMerge(Map<String, String>
+        base, Map<String, String> local, Map<String, String> remote) {
+        Map<String, String> merged = new HashMap<>();
+        Set<String> targetFiles = union(local.keySet(), remote.keySet());
+        forEach(targetFiles, (file) -> {
+            String localHash = local.get(file);
+            String remoteHash = remote.get(file);
+            boolean cond = isIdentical(file, base, local);
+            String mergedHash = cond ? remoteHash : localHash;
+            if (mergedHash != null) {
+                merged.put(file, mergedHash);
+            }
+        });
+        return merged;
     }
 }
