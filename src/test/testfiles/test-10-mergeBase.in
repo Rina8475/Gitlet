@@ -1,0 +1,71 @@
+# create a.txt
+< echo "a" > a.txt
+>>>
+< java -jar gitlet.jar init
+>>>
+< java -jar gitlet.jar add a.txt
+>>>
+< java -jar gitlet.jar commit "add a.txt"
+([\da-f]{40})
+>>>*
+D cid1 = ${1}
+#
+# create b.txt
+#
+< echo "b" > b.txt
+>>>
+< java -jar gitlet.jar add b.txt
+>>>
+< java -jar gitlet.jar commit "add b.txt"
+([\da-f]{40})
+>>>*
+D cid2 = ${1}
+#
+# create c.txt
+#
+< echo "c" > c.txt
+>>>
+< java -jar gitlet.jar add c.txt
+>>>
+< java -jar gitlet.jar commit "add c.txt"
+([\da-f]{40})
+>>>*
+D cid3 = ${1}
+# 
+# test merge-base
+# 
+< java -jar gitlet.jar merge-base ${cid1} ${cid3}
+${cid1}
+>>>
+< java -jar gitlet.jar merge-base ${cid2} ${cid3}
+${cid2}
+>>>
+< java -jar gitlet.jar merge-base ${cid3} ${cid1}
+${cid1}
+>>>
+< java -jar gitlet.jar checkout ${cid1}
+Switched to commit '${cid1}'.
+>>>
+#
+# add d.txt
+# 
+< echo "d" > d.txt
+>>>
+< java -jar gitlet.jar add d.txt
+>>>
+< java -jar gitlet.jar commit "add d.txt"
+([\da-f]{40})
+>>>*
+D cid4 = ${1}
+# 
+# test merge-base again
+# 
+< java -jar gitlet.jar merge-base ${cid1} ${cid4}
+${cid1}
+>>>
+< java -jar gitlet.jar merge-base ${cid3} ${cid4}
+${cid1}
+>>>
+< java -jar gitlet.jar merge-base HEAD master
+${cid1}
+>>>

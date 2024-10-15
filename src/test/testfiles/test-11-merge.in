@@ -1,0 +1,166 @@
+# Test idea
+# 1. test fast-forward merge (HEAD -> A, merge B)
+#   o a.txt, b.txt, c.txt <- A
+#   |
+#   o a.txt, b.txt, d.txt <- B (a.txt and b.txt is modified)
+# 2. test non-fast-forward merge (HEAD -> B, merge A)
+#   o a.txt, b.txt, c.txt <- A
+#   |
+#   o a.txt, b.txt, d.txt <- B (a.txt and b.txt is modified)
+# 3. test three-way merge (HEAD -> C, merge B)
+#   o a.txt, b.txt, c.txt <- A
+#  / \
+#  \  o a.txt, b.txt, d.txt, e.txt <- B (a.txt and b.txt is modified)
+#   o a.txt, b.txt, c.txt, f.txt, g.txt <- C 
+
+# create a.txt, b.txt, and c.txt
+< echo "a" > a.txt && echo "b" > b.txt && echo "c" > c.txt
+>>>
+< java -jar gitlet.jar init
+>>>
+< java -jar gitlet.jar add a.txt 
+>>>
+< java -jar gitlet.jar add b.txt
+>>>
+< java -jar gitlet.jar add c.txt
+>>>
+< java -jar gitlet.jar commit "commit 1"
+([\da-f]{40})
+>>>*
+D cid1 = ${1}
+
+# delete c.txt, add d.txt, and modify a.txt and b.txt
+< echo "d" > d.txt && rm c.txt && echo "branch 1" >> a.txt && echo "branch 1" >> b.txt
+>>>
+< java -jar gitlet.jar add d.txt 
+>>>
+< java -jar gitlet.jar add a.txt
+>>>
+< java -jar gitlet.jar add b.txt
+>>>
+< java -jar gitlet.jar rm c.txt
+>>>
+< java -jar gitlet.jar commit "commit 2"
+([\da-f]{40})
+>>>*
+D cid2 = ${1}
+< java -jar gitlet.jar checkout ${cid1}
+Switched to commit '${cid1}'.
+>>>
+EF c.txt
+NEF d.txt
+< java -jar gitlet.jar merge master
+Fast-forward merge.
+>>>
+EF d.txt
+NEF c.txt
+< java -jar gitlet.jar log
+commit ${cid2}
+
+commit 2
+
+commit ${cid1}
+
+commit 1
+
+commit ([\da-f]{40})
+
+initial commit
+>>>*
+D cid0 = ${1}
+< cat a.txt
+a
+branch 1
+>>>
+< cat d.txt
+d
+>>>
+# < java -jar gitlet.jar merge ${cid1}
+# Already up to date.
+# >>>
+< java -jar gitlet.jar checkout master
+Switched to branch 'master'.
+>>>
+
+# create e.txt
+< echo "e" > e.txt
+>>>
+< java -jar gitlet.jar add e.txt
+>>>
+< java -jar gitlet.jar commit "commit 3"
+([\da-f]{40})
+>>>*
+D cid3 = ${1}
+< java -jar gitlet.jar log
+commit ${cid3}
+
+commit 3
+
+commit ${cid2}
+
+commit 2
+
+commit ${cid1}
+
+commit 1
+
+commit ${cid0}
+
+initial commit
+>>>*
+# checkout back to ${cid1}
+< java -jar gitlet.jar checkout ${cid1}
+Switched to commit '${cid1}'.
+>>>
+< java -jar gitlet.jar branch demo
+>>>
+< java -jar gitlet.jar checkout demo
+Switched to branch 'demo'.
+>>>
+# create f.txt and g.txt
+< echo "f" > f.txt && echo "g" > g.txt 
+>>>
+< java -jar gitlet.jar add f.txt 
+>>>
+< java -jar gitlet.jar add g.txt
+>>>
+< java -jar gitlet.jar commit "commit 4"
+([\da-f]{40})
+>>>*
+D cid4 = ${1}
+< java -jar gitlet.jar merge master
+Merge made by the three-way merge.
+>>>
+< java -jar gitlet.jar status
+On branch demo
+Changes to be committed:
+
+Changes not staged for commit:
+
+Untracked files:
+>>>
+< java -jar gitlet.jar log
+commit ([\da-f]{40})
+
+Merge branch 'master'
+
+commit ${cid4}
+
+commit 4
+
+commit ${cid3}
+
+commit 3
+
+commit ${cid1}
+
+commit 1
+
+commit ${cid2}
+
+commit 2
+
+commit ${cid0}
+
+initial commit
+>>>*
