@@ -66,6 +66,8 @@ def read_tails(reader):
     for line in reader:
         if line.startswith(">>>*"):
             return ">>>*", buffer
+        elif line.startswith(">>>+"):
+            return ">>>+", buffer
         elif line.startswith(">>>"):
             return ">>>", buffer
         else:
@@ -94,8 +96,8 @@ def do_execute(expression, env):
     if regex_flag == ">>>+":
         if out:
             raise TestException(f"Output should be empty: \n{out}")
-        if code != 0:
-            raise TestException(f"Command should fail with code {code}")
+        if code == 0:
+            raise TestException(f"Command should not fail with code {code}")
         if err != expected:
             raise TestException(f"Unexpected error: \n{compare_strings_icdiff(expected, err)}")
         return None
@@ -176,7 +178,8 @@ def execute_token(pre, expression, env):
     return SPECIAL_FORMS[pre](expression, env)
 
 def execute_cmd(cmd):
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(cmd, shell=True, executable="/bin/zsh", stdout=subprocess.PIPE, \
+                        stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
     return stdout.decode("utf-8"), stderr.decode("utf-8"), p.returncode
 

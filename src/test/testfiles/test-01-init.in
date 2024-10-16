@@ -4,6 +4,11 @@
 >>>
 ED .gitlet/ .gitlet/refs .gitlet/objects
 EF .gitlet/HEAD .gitlet/index
+# The .gitlet/objects dir should only contain two objects: the empty tree and the
+# initial commit.
+< wc <(ls .gitlet/objects) --line | cut -d ' ' --fields 1
+2
+>>>
 < java -jar gitlet.jar hash-object foo.txt
 ([\da-f]{40})
 >>>*

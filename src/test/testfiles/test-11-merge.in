@@ -75,9 +75,9 @@ branch 1
 < cat d.txt
 d
 >>>
-# < java -jar gitlet.jar merge ${cid1}
-# Already up to date.
-# >>>
+< java -jar gitlet.jar merge ${cid1}
+Already up to date.
+>>>
 < java -jar gitlet.jar checkout master
 Switched to branch 'master'.
 >>>
@@ -142,7 +142,7 @@ Untracked files:
 < java -jar gitlet.jar log
 commit ([\da-f]{40})
 
-Merge branch 'master'
+Merge with 'master'
 
 commit ${cid4}
 
