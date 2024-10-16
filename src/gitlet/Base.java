@@ -13,6 +13,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 
 import static gitlet.Utils.*;
+import static gitlet.Wrapper.*;
 
 public class Base {
     public static final String BASE_PATH = Data.getBasePath();
@@ -23,7 +24,7 @@ public class Base {
         Data.init();
         String oid = Data.writeCommit(writeTree(), "initial commit");
         createBranch("master", oid);
-        Data.writeHead("ref: /refs/heads/master");
+        Data.writeHead("master");
     }
 
     /** Creates a new blob object with the given file. */
@@ -33,13 +34,8 @@ public class Base {
         return hashBlob(file);
     }
 
-    private static String hashBlob(File file) {
+    public static String hashBlob(File file) {
         return Data.hashObject(readContents(file), "blob");
-    }
-
-    private static String restrictedHashBlob(String filename) {
-        File file = join(BASE_PATH, filename);
-        return Data.restrictedHashObject(readContents(file), "blob");
     }
 
     /** adds the file to the staging area. */
@@ -61,15 +57,6 @@ public class Base {
             index.put(relatPath, id);
         }
         Data.writeIndex(index);
-    }
-
-    /** gets the relative path of the file from the repository root. */
-    private static String getRelativePath(File file) {
-        return file.getAbsolutePath().substring(BASE_LENGTH);
-    }
-
-    private static String getRelativePath(String fullPath) {
-        return fullPath.substring(BASE_LENGTH);
     }
 
     /** removes the file from the staging area. */
@@ -196,17 +183,13 @@ public class Base {
         }
     }
 
-    public static void checkoutBranch(String name) {
-        String branch = "refs/heads/" + name;
-        String headContent = Data.readHead();
-        assertCondition(!headContent.startsWith(Data.REF_PREFIX) || !branch
-            .equals(headContent.substring(Data.REF_PREFIX_LEN)), String
-            .format("Already on '%s'", name));
-
-        String oid = Data.getRef(branch);
-        Data.assertObjectExists(oid);
+    public static void checkoutBranch(String branch) {
+        String current = Data.readHead();
+        assertCondition(!(Data.isBranch(current) && current.equals(branch)), 
+            String.format("Already on '%s'", branch));
+        String oid = getBranch(branch);
         checkout(oid);
-        Data.writeHead(Data.REF_PREFIX + branch);
+        Data.writeHead(branch);
     }
 
     public static void checkoutCommit(String oid) {
@@ -299,14 +282,13 @@ public class Base {
 
     /** @return the status of the repository. */
     public static String status() {
-        String headContent = Data.readHead();
+        String current = Data.readHead();
         String content = "";
         // get the current position of HEAD
-        if (headContent.startsWith(Data.REF_PREFIX)) {
-            String branch = headContent.substring(Data.REF_PREFIX_LEN);
-            content += String.format("On branch %s\n", basename(branch));
+        if (Data.isBranch(current)) {
+            content += String.format("On branch %s\n", basename(current));
         } else {
-            content += String.format("HEAD detached at %s\n", headContent);
+            content += String.format("HEAD detached at %s\n", current);
         }
         content += statusHeadIndex(Data.readIndex());
         content += statusIndexWorkingDir(Data.readIndex());
@@ -361,9 +343,10 @@ public class Base {
         return content.toString();
     }
 
+    /** creates a new tag. */
     public static void createTag(String name, String oid) {
-        assertCondition(!getTags().contains(name), String.format("tag '%s' "
-            + "already exists", name));
+        assertCondition(!Data.isTag(name), String.format("tag '%s' already " 
+            + "exists", name));
         Data.createRef("refs/tags/" + name, oid);
     }
 
@@ -374,15 +357,19 @@ public class Base {
         return content.toString();
     }
 
-    public static Collection<String> getTags() {
+    private static Collection<String> getTags() {
         List<File> paths = getFiles(Data.TAG_DIR);
         return map(paths, (path) -> basename(path.getAbsolutePath()));
     }
 
-    public static void createBranch(String name, String oid) {
-        assertCondition(!getBranches().contains(name), String.format("branch "
-            + "'%s' already exists", name));
-        Data.createRef("refs/heads/" + name, oid);
+    /** creates a new branch.
+     * @param name the name of the branch to be created. i.e. "master"
+     * @param content the id of a commit object or the name of another branch. 
+     * i.e. "master" */
+    public static void createBranch(String name, String content) {
+        assertCondition(!Data.isBranch(name), String.format("branch '%s' "
+            + "already exists", name));
+        Data.createRef("refs/heads/" + name, content);
     }
 
     public static String branchList() {
@@ -392,7 +379,7 @@ public class Base {
         return content.toString();
     }
 
-    public static Collection<String> getBranches() {
+    private static Collection<String> getBranches() {
         List<File> paths = getFiles(Data.BRANCH_DIR);
         return map(paths, (path) -> basename(path.getAbsolutePath()));
     }
@@ -409,10 +396,9 @@ public class Base {
         return null;
     }
 
-    public static String merge(String branch) {
+    public static String merge(String name) {
         // TODO: check if the working directory is clean
-        // TODO: check if the branch exists
-        String remote = Data.getRef("refs/heads/" + branch);
+        String remote = getOid(name);
         String local = Data.getHead();
         String lca = mergeBase(local, remote);
         if (lca.equals(remote)) {           // non-fast-forward merge
@@ -423,8 +409,8 @@ public class Base {
             return "Fast-forward merge.";
         }
         // three-way merge
-        String merged = threeWayMerge(lca, local, remote, String.format("Merge "
-            + "branch '%s'", branch));
+        String merged = threeWayMerge(lca, local, remote, String.format("Merge"
+            + " with '%s'", name));
         checkout(merged);
         Data.updateHead(merged);
         return "Merge made by the three-way merge.";

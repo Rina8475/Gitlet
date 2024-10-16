@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static gitlet.Utils.*;
+import static gitlet.Wrapper.*;
 
 public class Repository {
 
@@ -84,58 +85,21 @@ public class Repository {
      * checkout operation will succeed, other files will be left unchanged. */
     public static void checkout(String name) {
         Data.assertInitialized();
-        String type = resolveRefsOrOids(name);
-        if ("branch".equals(type)) {
+        if (Data.isBranch(name)) {
             Base.checkoutBranch(name);
-        } else if ("tag".equals(type)) {
-            String oid = Data.getRef("refs/tags/" + name);
-            Data.assertObjectExists(oid);
+            System.out.printf("Switched to branch '%s'.\n", name);
+        } else if (Data.isTag(name)) {
+            String oid = getTag(name);
             Base.checkoutCommit(oid);
-        } else if ("commit".equals(type)) {
+            System.out.printf("Switched to tag '%s'.\n", name);
+        } else if (Data.isCommitId(name)) {
             Data.assertObjectExists(name);
             Base.checkoutCommit(name);
+            System.out.printf("Switched to commit '%s'.\n", name);
         } else {
             error(String.format("pathspec '%s' did not match any file(s) "
                     + "known to gitlet", name));
         }
-        System.out.printf("Switched to %s '%s'.\n", type, name);
-    }
-
-    private static String resolveRefsOrOids(String name) {
-        Pattern pattern = Pattern.compile("^[0-9a-f]{40}$");
-        if (pattern.matcher(name).matches()) {
-            return "commit";
-        } else if (Base.getTags().contains(name)) {
-            return "tag";
-        } else if (Base.getBranches().contains(name)) {
-            return "branch";
-        }
-        return name;
-    }
-
-    /** checks if the name is a validate ref or oid, and returns the resolved 
-     * oid. */
-    private static String validateRefsOrOids(String name) {
-        String oid = "";
-        switch (resolveRefsOrOids(name)) {
-            case "commit":
-                oid = name;
-                break;
-            case "tag":
-                oid = Data.getRef("refs/tags/" + name);
-                break;
-            case "branch":
-                oid = Data.getRef("refs/heads/" + name);
-                break;
-            case "HEAD":
-                oid = Data.getHead();
-                break;
-            default:
-                error(String.format("pathspec '%s' did not match any file(s) "
-                    + "known to gitlet", name));
-        }
-        Data.assertObjectExists(oid);
-        return oid;
     }
 
     // status
@@ -153,7 +117,7 @@ public class Repository {
     // tag
     public static void tag(String tagname, String name) {
         Data.assertInitialized();
-        String oid = validateRefsOrOids(name);
+        String oid = getOid(name);
         Data.assertObjectExists(oid);
         Base.createTag(tagname, oid);
     }
@@ -164,7 +128,7 @@ public class Repository {
         System.out.print(Base.tagList());
     }
 
-    // branch
+    // branch-list
     public static void branch() {
         Data.assertInitialized();
         System.out.print(Base.branchList());
@@ -179,8 +143,10 @@ public class Repository {
     // merge-base
     public static void mergeBase(String name1, String name2) {
         Data.assertInitialized();
-        String oid1 = validateRefsOrOids(name1);
-        String oid2 = validateRefsOrOids(name2);
+        String oid1 = getOid(name1);
+        String oid2 = getOid(name2);
+        Data.assertObjectExists(oid1);
+        Data.assertObjectExists(oid2);
         System.out.println(Base.mergeBase(oid1, oid2));
     }
 

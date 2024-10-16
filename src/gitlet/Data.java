@@ -111,6 +111,100 @@ public class Data {
         return ancestors;
     }
 
+    /******************
+     * Ref Operations *
+     ******************/
+    public static boolean isCommitId(String id) {
+        return id.matches("^[0-9a-f]{40}$");
+    }
+
+    public static boolean isBranch(String name) {
+        File branchFile = join(BRANCH_DIR, name);
+        return branchFile.exists() && branchFile.isFile();
+    }
+
+    public static boolean isTag(String name) {
+        File tagFile = join(TAG_DIR, name);
+        return tagFile.exists() && tagFile.isFile();
+    }
+
+    /** Write the content to the HEAD directly. */
+    public static void writeHead(String content) {
+        writeRef("HEAD", content);
+    }
+
+    /** This operation is the reverse of writeHead. It reads the content of the
+     * HEAD.
+     * @return the local branch name or the commit id pointed by the HEAD. */
+    public static String readHead() {
+        String content = readContentsAsString(HEAD_FILE);
+        if (content.startsWith(REF_PREFIX)) {
+            return basename(content.substring(REF_PREFIX_LEN));
+        } else {
+            return content;
+        }
+    }
+
+    public static void updateHead(String ref) {
+        updateRef("HEAD", ref);
+    }
+
+    /** Returns the id of the current HEAD commit. */
+    public static String getHead() {
+        return getRef("HEAD");
+    }
+
+    /** Write the content to the REF directly.
+     * if the content is a local branch name, then write "ref: refs/heads/name"
+     * if the content is a commit id, then write the commit id directly.
+     * @param ref is the path of the ref to write, relative to the .gitlet 
+     * directory, e.g. "refs/heads/master".
+     * @param content is just the commit id or the local branch name, i.e. 
+     * "master". */
+    private static void writeRef(String ref, String content) {
+        File refFile = join(GITLET_DIR, ref);
+        if (isBranch(content)) {
+            writeContents(refFile, REF_PREFIX + "refs/heads/" + content);
+        } else if (isCommitId(content)) {
+            writeContents(refFile, content);
+        } else {
+            error("Invalid ref content: " + content);
+        }
+    }
+
+    /** @param ref the path of the ref to get, relative to the .gitlet 
+     * directory.
+     * @return the id of the commit pointed by the given ref */
+    public static String getRef(String ref) {
+        File refFile = join(GITLET_DIR, ref);
+        String content = readContentsAsString(refFile);
+        if (content.startsWith(REF_PREFIX)) {
+            return getRef(content.substring(REF_PREFIX_LEN));
+        } else {
+            return content;
+        }
+    }
+
+    /** Update the deepest-ref with the given content. */
+    public static void updateRef(String ref, String content) {
+        File refFile = join(GITLET_DIR, ref);
+        String refContent = readContentsAsString(refFile);
+        if (refContent.startsWith(REF_PREFIX)) {
+            updateRef(refContent.substring(REF_PREFIX_LEN), content);
+        } else {
+            writeContents(refFile, content);
+        }
+    }
+
+    /** Create a new ref with the given content.
+     * @param ref the path of the ref to create, relative to the .gitlet 
+     * directory. */
+    public static void createRef(String ref, String content) {
+        File refFile = join(GITLET_DIR, ref);
+        createFile(refFile);
+        writeRef(ref, content);
+    }
+
     /** Initializes the .gitlet directory and creates the necessary files. */
     public static void init() {
         createDirectory(VIEW_DIR);
@@ -139,55 +233,6 @@ public class Data {
             return null;
         }
         return findRepository(parent);
-    }
-
-    /** Write the content to the HEAD directly. */
-    public static void writeHead(String content) {
-        writeContents(HEAD_FILE, content);
-    }
-
-    /** @return the content of the HEAD file. */
-    public static String readHead() {
-        return readContentsAsString(HEAD_FILE);
-    }
-
-    public static void updateHead(String ref) {
-        updateRef("HEAD", ref);
-    }
-
-    /** Returns the id of the current HEAD commit. */
-    public static String getHead() {
-        return getRef("HEAD");
-    }
-
-    /** @param ref the path of the ref to get, relative to the .gitlet 
-     * directory, e.g. "refs/heads/master".
-     * @return the id of the commit pointed by the given ref */
-    public static String getRef(String ref) {
-        File refFile = join(GITLET_DIR, ref);
-        String content = readContentsAsString(refFile);
-        if (content.startsWith(REF_PREFIX)) {
-            return getRef(content.substring(REF_PREFIX_LEN));
-        } else {
-            return content;
-        }
-    }
-
-    /** Update the deepest-ref with the given content. */
-    public static void updateRef(String ref, String content) {
-        File refFile = join(GITLET_DIR, ref);
-        String refContent = readContentsAsString(refFile);
-        if (refContent.startsWith(REF_PREFIX)) {
-            updateRef(refContent.substring(REF_PREFIX_LEN), content);
-        } else {
-            writeContents(refFile, content);
-        }
-    }
-
-    public static void createRef(String ref, String content) {
-        File refFile = join(GITLET_DIR, ref);
-        createFile(refFile);
-        writeContents(refFile, content);
     }
 
     /** Create a new gitlet object with the given content and type.
